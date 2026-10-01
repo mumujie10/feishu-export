@@ -59,7 +59,8 @@
 | 系统 | 配置文件位置 |
 | --- | --- |
 | Windows | `%APPDATA%\FeishuDocExport\settings.json` |
-| macOS / Linux | `~/.config/FeishuDocExport/settings.json` |
+| macOS | `~/Library/Application Support/FeishuDocExport/settings.json` |
+| Linux | `~/.config/FeishuDocExport/settings.json` |
 
 > `AppSecret` 以明文保存在该文件中。如果不希望落盘，取消勾选「在本机记住 AppSecret」。
 
@@ -205,6 +206,23 @@ dotnet publish src/FeishuDocExport.Cli/FeishuDocExport.Cli.csproj \
 
 > 注意：命令行版本若要启用 `-p:PublishTrimmed=true` 裁剪，需要保留 `System.Xml` / `System.Private.Xml` 等程序集（已在 csproj 中配置），否则 Aspose.Words 的 markdown 转换会失败。
 
+### 打包 macOS 安装包（.dmg）
+
+```bash
+./scripts/build-dmg.sh                  # 当前机器架构（Apple Silicon → osx-arm64）
+./scripts/build-dmg.sh osx-x64          # Intel 版
+./scripts/build-dmg.sh osx-arm64 0.0.6  # 指定版本号
+```
+
+产出 `dist/feishu-doc-export-gui-<版本>-<架构>.dmg`，双击挂载后把「飞书文档导出工具.app」拖进 Applications 即可。DMG 里还包含：
+
+- `命令行工具/feishu-doc-export`：同样的功能，适合挂机批量和写脚本
+- `使用说明.txt`：安装步骤与首次打开的放行方法
+
+> **首次打开被系统拦下是正常的**：本项目没有 Apple 开发者证书，只能做 ad-hoc 签名、无法公证（notarization）。第一次打开时请右键点击 App →「打开」→ 再点一次「打开」，或在「系统设置 → 隐私与安全性」里点击「仍要打开」。只需放行一次。
+>
+> 应用图标由 `scripts/make-icon.py` 生成，改图标只需改脚本后重新打包。
+
 ---
 
 ## 七、常见问题
@@ -231,6 +249,7 @@ dotnet publish src/FeishuDocExport.Cli/FeishuDocExport.Cli.csproj \
 ### v0.0.5（图形界面版本）
 
 - **新增 Avalonia 跨平台图形界面**：可视化配置、知识库下拉选择、实时进度条、运行日志、未导出清单、一键打开导出目录、配置持久化。
+- **新增 macOS `.dmg` 安装包**：`scripts/build-dmg.sh` 一键产出带图标、带 Applications 快捷方式的安装包，Apple Silicon 与 Intel 双架构，内置命令行版与使用说明。
 - **重构为三层结构**：核心库 / 命令行 / 图形界面共用同一套导出逻辑，命令行用法保持向后兼容。
 - **修复**：Aspose 许可证路径硬编码 `/private/tmp/License.lic`（在 Windows / Linux 上必然失败）→ 改为可配置 + 自动查找 + 优雅降级。
 - **修复**：`--apiEndpoint` 参数文档里有写但代码从未读取，国际版 Lark 实际不可用 → 现在真正生效。

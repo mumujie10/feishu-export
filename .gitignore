@@ -406,3 +406,6 @@ FodyWeavers.xsd
 
 # 发布产物
 dist/
+
+# 本地打包中间产物
+build/
