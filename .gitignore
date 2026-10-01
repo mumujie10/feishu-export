@@ -397,3 +397,12 @@ FodyWeavers.xsd
 # JetBrains Rider
 *.sln.iml
 /src/feishu-doc-export/dist/*
+
+# 本地 .NET SDK / 构建缓存（由 .tools/dn.sh 使用）
+.dotnet/
+.dotnet-home/
+.nuget/
+.tools/
+
+# 发布产物
+dist/

@@ -1,0 +1,26 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <RootNamespace>FeishuDocExport</RootNamespace>
+    <AssemblyName>FeishuDocExport.Core</AssemblyName>
+    <GenerateDocumentationFile>false</GenerateDocumentationFile>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!--
+      Aspose.Words 版本与原始工程保持一致，避免已购买的许可证失效。
+      该库仅在「导出为 markdown」时需要（飞书不提供 md 导出，只能先拿 docx 再转换）。
+      没有许可证文件时程序不会崩溃，会退化为评估模式并在界面上给出明确提示。
+    -->
+    <PackageReference Include="Aspose.Words" Version="21.6.0" />
+  </ItemGroup>
+
+  <ItemGroup Condition="$([MSBuild]::IsOSPlatform('OSX'))">
+    <!-- Aspose.Words 在 macOS 上渲染/抽出图片依赖 SkiaSharp 原生库，Apple Silicon 需要 arm64 版本 -->
+    <PackageReference Include="SkiaSharp.NativeAssets.macOS" Version="2.88.3" />
+  </ItemGroup>
+
+</Project>

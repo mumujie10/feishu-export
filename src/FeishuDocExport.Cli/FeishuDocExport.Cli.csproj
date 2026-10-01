@@ -1,0 +1,38 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net8.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <RootNamespace>FeishuDocExport.Cli</RootNamespace>
+    <!-- 保持与原工程一致的产物名，老用户升级后命令不变 -->
+    <AssemblyName>feishu-doc-export</AssemblyName>
+    <!-- 把 libSkiaSharp 等原生库一并打进单文件，避免发布目录里出现散落的 dylib/so/dll -->
+    <IncludeAllContentForSelfExtract>true</IncludeAllContentForSelfExtract>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\FeishuDocExport.Core\FeishuDocExport.Core.csproj" />
+  </ItemGroup>
+
+  <!--
+    使用 -p:PublishTrimmed=true 裁剪发布时，必须保留 XML 相关程序集，
+    否则 Aspose.Words 在做 docx → markdown 转换时会失败。
+    （沿用原工程的配置）
+  -->
+  <Target Name="ConfigureTrimming" BeforeTargets="PrepareForILLink">
+    <ItemGroup>
+      <ManagedAssemblyToLink Condition="'%(Filename)' == 'Aspose.Words.Pdf2Word'">
+        <IsTrimmable>true</IsTrimmable>
+      </ManagedAssemblyToLink>
+    </ItemGroup>
+    <ItemGroup>
+      <TrimmerRootAssembly Include="mscorlib" />
+      <TrimmerRootAssembly Include="System.Xml" />
+      <TrimmerRootAssembly Include="System.Xml.ReaderWriter" />
+      <TrimmerRootAssembly Include="System.Private.Xml" />
+    </ItemGroup>
+  </Target>
+
+</Project>
