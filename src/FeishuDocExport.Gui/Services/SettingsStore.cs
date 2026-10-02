@@ -34,6 +34,12 @@ public sealed class AppSettings
     public string LicensePath { get; set; } = string.Empty;
 
     public bool SkipExistingFiles { get; set; }
+
+    /// <summary>0=跟随系统，1=浅色，2=深色。</summary>
+    public int ThemeMode { get; set; }
+
+    /// <summary>是否已经看完首启引导。</summary>
+    public bool OnboardingSeen { get; set; }
 }
 
 /// <summary>负责配置文件的读写。</summary>

@@ -5,9 +5,9 @@
 # 用法：
 #   ./scripts/build-dmg.sh                 # 默认打包当前机器架构（Apple Silicon → osx-arm64）
 #   ./scripts/build-dmg.sh osx-x64         # 打包 Intel 版
-#   ./scripts/build-dmg.sh osx-arm64 0.0.6 # 指定版本号
+#   ./scripts/build-dmg.sh osx-arm64 1.0.1 # 指定版本号
 #
-# 产物：dist/feishu-doc-export-gui-<version>-<rid>.dmg
+# 产物：dist/feishu-export-<version>-<rid>.dmg
 #
 # 说明：本脚本不依赖 Xcode，只用到 macOS 自带的 hdiutil / iconutil / codesign / plutil。
 set -euo pipefail
@@ -16,9 +16,9 @@ ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$ROOT"
 
 RID="${1:-osx-arm64}"
-VERSION="${2:-0.0.5}"
+VERSION="${2:-1.0.0}"
 
-APP_NAME="飞书文档导出工具"
+APP_NAME="飞书导出"
 BUNDLE_ID="com.feisudoc.export.gui"
 EXECUTABLE="feishu-doc-export-gui"
 
@@ -32,7 +32,7 @@ BUILD_DIR="$ROOT/build/dmg-$RID"
 PAYLOAD_DIR="$BUILD_DIR/payload"
 STAGE_DIR="$BUILD_DIR/stage"
 APP_BUNDLE="$STAGE_DIR/$APP_NAME.app"
-DMG_PATH="$ROOT/dist/feishu-doc-export-gui-$VERSION-$RID.dmg"
+DMG_PATH="$ROOT/dist/feishu-export-$VERSION-$RID.dmg"
 DOTNET="$ROOT/.tools/dn.sh"
 
 if [[ ! -x "$DOTNET" ]]; then
@@ -119,12 +119,12 @@ chmod +x "$STAGE_DIR/命令行工具/feishu-doc-export"
 ln -s /Applications "$STAGE_DIR/Applications"
 
 cat > "$STAGE_DIR/使用说明.txt" <<'README'
-飞书文档导出工具
+飞书导出
 ================================================================
 
 安装
 ----------------------------------------------------------------
-把「飞书文档导出工具.app」拖到右侧的 Applications 文件夹即可。
+把「飞书导出.app」拖到右侧的 Applications 文件夹即可。
 
 首次打开被系统拦下怎么办
 ----------------------------------------------------------------
@@ -134,17 +134,18 @@ cat > "$STAGE_DIR/使用说明.txt" <<'README'
 方式一（推荐）：在「访达」里右键点击 App → 选择「打开」→ 在弹窗里再点一次「打开」。
 方式二：打开「系统设置 → 隐私与安全性」，在底部点击「仍要打开」。
 方式三：在终端执行一次
-        xattr -dr com.apple.quarantine "/Applications/飞书文档导出工具.app"
+        xattr -dr com.apple.quarantine "/Applications/飞书导出.app"
 
 只需放行一次，之后就能正常双击打开了。
 
 使用前准备
 ----------------------------------------------------------------
+第一次打开 App 会自动弹出「使用引导」，5 节讲完下面全部内容，
+照着做即可，不需要另外查文档；之后点窗口右上角「使用引导」随时重看。
+
 1. 在飞书开放平台创建企业自建应用，开通云文档相关权限并发布；
 2. 把应用作为群机器人加入一个群，再把这个群加为知识库管理员；
 3. 在 App 里填入 AppId / AppSecret，点「获取列表」选择知识库，即可开始导出。
-
-详细步骤见项目主页的 readme.md。
 
 命令行版本
 ----------------------------------------------------------------

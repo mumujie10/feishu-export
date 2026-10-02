@@ -177,7 +177,7 @@ internal static class Program
 
     private static bool RunInteractiveWizard(ExportOptions options)
     {
-        Console.WriteLine("=== 飞书文档导出 ===");
+        Console.WriteLine("=== 飞书导出 ===");
         Console.WriteLine();
 
         options.AppId = PromptRequired("请输入飞书自建应用的 AppId：");

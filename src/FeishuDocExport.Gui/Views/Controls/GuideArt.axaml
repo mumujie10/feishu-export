@@ -1,0 +1,319 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             x:Class="FeishuDocExport.Gui.Views.Controls.GuideArt"
+             MinHeight="252">
+
+  <!--
+    示意图用纯 XAML 线框画，不放真实截图：跟随主题换色、放大不糊、
+    飞书后台改版后只需要改这里的文案，不用重拍截图。
+    Kind 属性决定显示哪一块，5 个子节点的名字就是 Kind 值。
+  -->
+
+  <UserControl.Styles>
+    <Style Selector="Border.frame">
+      <Setter Property="Background" Value="{DynamicResource Brush.Inset}" />
+      <Setter Property="BorderBrush" Value="{DynamicResource Brush.Border.Strong}" />
+      <Setter Property="BorderThickness" Value="1" />
+      <Setter Property="CornerRadius" Value="{DynamicResource Radius.Card}" />
+      <Setter Property="Padding" Value="0" />
+      <Setter Property="ClipToBounds" Value="True" />
+    </Style>
+
+    <Style Selector="Border.bar">
+      <Setter Property="Background" Value="{DynamicResource Brush.Raised}" />
+      <Setter Property="BorderBrush" Value="{DynamicResource Brush.Border.Subtle}" />
+      <Setter Property="BorderThickness" Value="0,0,0,1" />
+      <Setter Property="Padding" Value="10,7" />
+    </Style>
+
+    <Style Selector="Border.box">
+      <Setter Property="Background" Value="{DynamicResource Brush.Card}" />
+      <Setter Property="BorderBrush" Value="{DynamicResource Brush.Border.Subtle}" />
+      <Setter Property="BorderThickness" Value="1" />
+      <Setter Property="CornerRadius" Value="{DynamicResource Radius.Control}" />
+      <Setter Property="Padding" Value="10,8" />
+    </Style>
+
+    <Style Selector="Border.hl">
+      <Setter Property="Background" Value="{DynamicResource Brush.Accent.Soft}" />
+      <Setter Property="BorderBrush" Value="{DynamicResource Brush.Accent}" />
+      <Setter Property="BorderThickness" Value="1" />
+      <Setter Property="CornerRadius" Value="{DynamicResource Radius.Control}" />
+      <Setter Property="Padding" Value="10,8" />
+    </Style>
+
+    <Style Selector="Border.line">
+      <Setter Property="Height" Value="7" />
+      <Setter Property="CornerRadius" Value="3" />
+      <Setter Property="Background" Value="{DynamicResource Brush.Border.Strong}" />
+    </Style>
+
+    <Style Selector="Border.dot">
+      <Setter Property="Width" Value="22" />
+      <Setter Property="Height" Value="22" />
+      <Setter Property="CornerRadius" Value="{DynamicResource Radius.Pill}" />
+      <Setter Property="Background" Value="{DynamicResource Brush.Border.Subtle}" />
+    </Style>
+
+    <Style Selector="TextBlock.cap">
+      <Setter Property="FontSize" Value="11" />
+      <Setter Property="Foreground" Value="{DynamicResource Brush.Text.Muted}" />
+      <Setter Property="VerticalAlignment" Value="Center" />
+    </Style>
+
+    <Style Selector="TextBlock.t">
+      <Setter Property="FontSize" Value="11.5" />
+      <Setter Property="Foreground" Value="{DynamicResource Brush.Text.Secondary}" />
+      <Setter Property="TextWrapping" Value="Wrap" />
+    </Style>
+
+    <Style Selector="TextBlock.t-hl">
+      <Setter Property="FontSize" Value="11.5" />
+      <Setter Property="FontWeight" Value="SemiBold" />
+      <Setter Property="Foreground" Value="{DynamicResource Brush.Accent}" />
+      </Style>
+
+    <Style Selector="TextBlock.t-strong">
+      <Setter Property="FontSize" Value="11.5" />
+      <Setter Property="FontWeight" Value="SemiBold" />
+      <Setter Property="Foreground" Value="{DynamicResource Brush.Text}" />
+    </Style>
+
+    <Style Selector="Border.tag">
+      <Setter Property="Background" Value="{DynamicResource Brush.Accent.Soft}" />
+      <Setter Property="CornerRadius" Value="{DynamicResource Radius.Chip}" />
+      <Setter Property="Padding" Value="6,1" />
+      <Setter Property="VerticalAlignment" Value="Center" />
+    </Style>
+  </UserControl.Styles>
+
+  <Grid>
+
+    <!-- ============ 1. 创建自建应用 ============ -->
+    <Border Classes="frame" x:Name="app">
+      <DockPanel>
+        <Border Classes="bar" DockPanel.Dock="Top">
+          <StackPanel Orientation="Horizontal" Spacing="8">
+            <Border Classes="dot" Width="12" Height="12" />
+            <TextBlock Classes="cap" Text="open.feishu.cn/app" />
+          </StackPanel>
+        </Border>
+
+        <Grid ColumnDefinitions="104,*">
+          <StackPanel Spacing="7" Margin="10,12,8,10">
+            <TextBlock Classes="t-strong" Text="应用详情页" />
+            <TextBlock Classes="t" Text="添加应用能力" />
+            <TextBlock Classes="t" Text="权限管理" />
+            <Border Classes="hl" Padding="6,3">
+              <TextBlock Classes="t-hl" Text="凭证与基础信息" />
+            </Border>
+            <TextBlock Classes="t" Text="版本管理与发布" />
+          </StackPanel>
+
+          <StackPanel Grid.Column="1" Spacing="8" Margin="2,12,12,10">
+            <Border Classes="hl">
+              <TextBlock Classes="t-hl" Text="＋ 创建企业自建应用" />
+            </Border>
+            <Border Classes="box">
+              <StackPanel Spacing="6">
+                <TextBlock Classes="t-strong" Text="App ID" />
+                <Border Classes="line" Width="150" HorizontalAlignment="Left" />
+              </StackPanel>
+            </Border>
+            <Border Classes="box">
+              <StackPanel Spacing="6">
+                <TextBlock Classes="t-strong" Text="App Secret" />
+                <Border Classes="line" Width="186" HorizontalAlignment="Left" />
+              </StackPanel>
+            </Border>
+            <TextBlock Classes="cap" Text="复制这两项，贴回飞书导出" />
+          </StackPanel>
+        </Grid>
+      </DockPanel>
+    </Border>
+
+    <!-- ============ 2. 权限管理 ============ -->
+    <Border Classes="frame" x:Name="permission">
+      <DockPanel>
+        <Border Classes="bar" DockPanel.Dock="Top">
+          <TextBlock Classes="cap" Text="open.feishu.cn/app → 权限管理" />
+        </Border>
+
+        <StackPanel Spacing="7" Margin="12,12,12,10">
+          <TextBlock Classes="t-strong" Text="搜索权限名，勾选「已开通」" />
+
+          <Border Classes="box" Padding="9,6">
+            <Grid ColumnDefinitions="*,Auto">
+              <TextBlock Classes="t" Text="查看新版文档" />
+              <Border Grid.Column="1" Classes="tag">
+                <TextBlock Classes="t-hl" Text="已开通" />
+              </Border>
+            </Grid>
+          </Border>
+
+          <Border Classes="box" Padding="9,6">
+            <Grid ColumnDefinitions="*,Auto">
+              <TextBlock Classes="t" Text="查看、评论和导出文档" />
+              <Border Grid.Column="1" Classes="tag">
+                <TextBlock Classes="t-hl" Text="已开通" />
+              </Border>
+            </Grid>
+          </Border>
+
+          <Border Classes="box" Padding="9,6">
+            <Grid ColumnDefinitions="*,Auto">
+              <TextBlock Classes="t" Text="查看、评论、编辑和管理电子表格" />
+              <Border Grid.Column="1" Classes="tag" BorderThickness="1" BorderBrush="{DynamicResource Brush.Warn}">
+                <TextBlock Classes="t" Foreground="{DynamicResource Brush.Warn}" Text="待开通" />
+              </Border>
+            </Grid>
+          </Border>
+
+          <StackPanel Orientation="Horizontal" Spacing="8" Margin="0,4,0,0">
+            <Border Classes="line" Width="34" />
+            <TextBlock Classes="cap" Text="共 4 页，别忘了翻页" />
+          </StackPanel>
+        </StackPanel>
+      </DockPanel>
+    </Border>
+
+    <!-- ============ 3. 授权知识库 ============ -->
+    <Border Classes="frame" x:Name="grant">
+      <DockPanel>
+        <Border Classes="bar" DockPanel.Dock="Top">
+          <TextBlock Classes="cap" Text="飞书客户端：应用进群 → 群当管理员" />
+        </Border>
+
+        <Grid ColumnDefinitions="*,30,*" Margin="12,12,12,10">
+          <StackPanel Spacing="8">
+            <TextBlock Classes="t-strong" Text="① 群机器人" />
+            <Border Classes="box">
+              <StackPanel Spacing="7">
+                <StackPanel Orientation="Horizontal" Spacing="8">
+                  <Border Classes="dot" Background="{DynamicResource Brush.Accent.Soft}">
+                    <TextBlock Classes="t-hl" Text="机" HorizontalAlignment="Center" />
+                  </Border>
+                  <StackPanel Spacing="2">
+                    <TextBlock Classes="t-strong" Text="导出助手（应用）" />
+                    <TextBlock Classes="cap" Text="群机器人" />
+                  </StackPanel>
+                </StackPanel>
+                <Border Classes="line" Width="130" HorizontalAlignment="Left" />
+              </StackPanel>
+            </Border>
+          </StackPanel>
+
+          <TextBlock Grid.Column="1"
+                     Classes="t-hl"
+                     Text="→"
+                     FontSize="18"
+                     HorizontalAlignment="Center"
+                     VerticalAlignment="Center" />
+
+          <StackPanel Grid.Column="2" Spacing="8">
+            <TextBlock Classes="t-strong" Text="② 知识库管理员" />
+            <Border Classes="box">
+              <StackPanel Spacing="7">
+                <TextBlock Classes="cap" Text="知识空间设置 → 成员管理" />
+                <Border Classes="hl" Padding="8,5">
+                  <Grid ColumnDefinitions="*,Auto">
+                    <TextBlock Classes="t-hl" Text="导出群" />
+                    <TextBlock Grid.Column="1" Classes="cap" Text="管理员" />
+                  </Grid>
+                </Border>
+                <TextBlock Classes="t" Text="「添加管理员」里搜群名选中" />
+              </StackPanel>
+            </Border>
+          </StackPanel>
+        </Grid>
+      </DockPanel>
+    </Border>
+
+    <!-- ============ 4. 定位导出目标 ============ -->
+    <Border Classes="frame" x:Name="target">
+      <DockPanel>
+        <Border Classes="bar" DockPanel.Dock="Top">
+          <StackPanel Orientation="Horizontal" Spacing="0">
+            <TextBlock Classes="cap" Text="…/wiki/" />
+            <TextBlock Classes="t-hl" Text="6872xxxxxxxxxxxx" />
+            <TextBlock Classes="cap" Text="  ← 这就是 spaceId" />
+          </StackPanel>
+        </Border>
+
+        <StackPanel Spacing="8" Margin="12,12,12,10">
+          <TextBlock Classes="t-strong" Text="通常不用手填：点「获取列表」" />
+
+          <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8">
+            <Border Classes="box" Padding="9,7">
+              <TextBlock Classes="t" Text="选择一个知识库" />
+            </Border>
+            <Border Grid.Column="1" Classes="hl" Padding="9,7">
+              <TextBlock Classes="t-hl" Text="获取列表" />
+            </Border>
+          </Grid>
+
+          <Border Classes="box" Padding="0">
+            <StackPanel Spacing="0">
+              <Border Classes="hl" CornerRadius="0" BorderThickness="0,0,0,1" Padding="10,6">
+                <TextBlock Classes="t-hl" Text="产品部知识库" />
+              </Border>
+              <Border Padding="10,6" BorderBrush="{DynamicResource Brush.Border.Subtle}" BorderThickness="0,0,0,1">
+                <TextBlock Classes="t" Text="技术架构" />
+              </Border>
+              <Border Padding="10,6">
+                <TextBlock Classes="t" Text="团队规范" />
+              </Border>
+            </StackPanel>
+          </Border>
+
+          <TextBlock Classes="cap" Text="下拉框是空的 → 说明知识库还没授权给应用" />
+        </StackPanel>
+      </DockPanel>
+    </Border>
+
+    <!-- ============ 5. 导出与格式 ============ -->
+    <Border Classes="frame" x:Name="export">
+      <DockPanel>
+        <Border Classes="bar" DockPanel.Dock="Top">
+          <TextBlock Classes="cap" Text="飞书导出：3. 导出设置 → 开始导出" />
+        </Border>
+
+        <StackPanel Spacing="10" Margin="12,12,12,10">
+          <StackPanel Orientation="Horizontal" Spacing="7">
+            <Border Classes="hl" Padding="9,4">
+              <TextBlock Classes="t-hl" Text="docx 最快" />
+            </Border>
+            <Border Classes="box" Padding="9,4">
+              <TextBlock Classes="t" Text="pdf 最慢" />
+            </Border>
+            <Border Classes="box" Padding="9,4">
+              <TextBlock Classes="t" Text="md 需许可证" />
+            </Border>
+          </StackPanel>
+
+          <Border Height="8"
+                  CornerRadius="{DynamicResource Radius.Pill}"
+                  Background="{DynamicResource Brush.Border.Subtle}">
+            <Grid ColumnDefinitions="62*,38*">
+              <Border Background="{DynamicResource Brush.Accent}"
+                      CornerRadius="{DynamicResource Radius.Pill}" />
+            </Grid>
+          </Border>
+
+          <TextBlock Classes="t-strong" Text="正在导出（312 / 712）：产品需求说明书" />
+
+          <StackPanel Orientation="Horizontal" Spacing="8">
+            <Border Classes="tag" Background="{DynamicResource Brush.Ok.Soft}">
+              <TextBlock Classes="t" Foreground="{DynamicResource Brush.Ok}" Text="成功 309" />
+            </Border>
+            <Border Classes="tag" Background="{DynamicResource Brush.Err.Soft}">
+              <TextBlock Classes="t" Foreground="{DynamicResource Brush.Err}" Text="未导出 3" />
+            </Border>
+            <TextBlock Classes="cap" Text="表格自动导成 xlsx" />
+          </StackPanel>
+        </StackPanel>
+      </DockPanel>
+    </Border>
+
+  </Grid>
+</UserControl>

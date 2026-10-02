@@ -109,15 +109,34 @@ public partial class MainWindowViewModel : ObservableObject
     [ObservableProperty]
     private bool _isLicenseOk;
 
+    /// <summary>0=跟随系统，1=浅色，2=深色。</summary>
+    [ObservableProperty]
+    private int _themeMode;
+
     /// <summary>由视图注入：弹出「选择目录」对话框。</summary>
     public Func<Task<string?>>? PickFolderAsync { get; set; }
 
     /// <summary>由视图注入：弹出「选择许可证文件」对话框。</summary>
     public Func<Task<string?>>? PickLicenseFileAsync { get; set; }
 
+    /// <summary>由视图注入：打开引导窗口。参数是要看的章节 Id，null 表示从头浏览完整向导。</summary>
+    public Func<string?, Task>? ShowGuideAsync { get; set; }
+
+    /// <summary>还没走完首启向导时为 true，视图据此在启动时自动弹出向导。</summary>
+    public bool OnboardingPending => !_settings.OnboardingSeen;
+
     public ObservableCollection<LogEntry> Logs { get; } = new();
 
     public ObservableCollection<FailureItem> Failures { get; } = new();
+
+    /// <summary>日志区是否有内容，用来切换空状态提示。</summary>
+    public bool HasLogs => Logs.Count > 0;
+
+    /// <summary>未导出清单是否有内容。</summary>
+    public bool HasFailures => Failures.Count > 0;
+
+    /// <summary>是否已经跑出结果摘要，没开始时不占一行空白。</summary>
+    public bool HasSummary => !string.IsNullOrEmpty(SummaryText);
 
     public bool IsCloudDocSource
     {
@@ -152,6 +171,9 @@ public partial class MainWindowViewModel : ObservableObject
         };
 
         UpdateLicenseStatus();
+
+        Logs.CollectionChanged += (_, _) => OnPropertyChanged(nameof(HasLogs));
+        Failures.CollectionChanged += (_, _) => OnPropertyChanged(nameof(HasFailures));
     }
 
     /// <summary>绑定宿主窗口，注入文件选择器等与界面相关的能力。</summary>
@@ -387,6 +409,16 @@ public partial class MainWindowViewModel : ObservableObject
         StatusText = "日志已清空。";
     }
 
+    /// <summary>打开使用引导。参数为章节 Id（AppId、知识库这些输入框旁的「?」会传），留空表示浏览全部章节。</summary>
+    [RelayCommand]
+    private async Task OpenGuideAsync(string? stepId)
+    {
+        if (ShowGuideAsync is { } handler)
+        {
+            await handler(stepId);
+        }
+    }
+
     #endregion
 
     #region 内部逻辑
@@ -514,6 +546,10 @@ public partial class MainWindowViewModel : ObservableObject
         FormatIndex = settings.FormatIndex is >= 0 and <= 2 ? settings.FormatIndex : 0;
         LicensePath = settings.LicensePath;
         SkipExistingFiles = settings.SkipExistingFiles;
+        ThemeMode = settings.ThemeMode is >= 0 and <= 2 ? settings.ThemeMode : 0;
+
+        // 主题在加载设置时立刻应用，避免界面先闪一下系统配色
+        ThemeManager.Apply(ThemeMode);
     }
 
     private AppSettings CollectSettings() => new()
@@ -530,6 +566,8 @@ public partial class MainWindowViewModel : ObservableObject
         FormatIndex = FormatIndex,
         LicensePath = LicensePath ?? string.Empty,
         SkipExistingFiles = SkipExistingFiles,
+        ThemeMode = ThemeMode,
+        OnboardingSeen = _settings.OnboardingSeen,
     };
 
     private void PersistSettings()
@@ -540,6 +578,13 @@ public partial class MainWindowViewModel : ObservableObject
         }
 
         _settings = CollectSettings();
+        SettingsStore.Save(_settings);
+    }
+
+    /// <summary>完整走完首启向导后调用，之后启动不再自动弹出。</summary>
+    public void CompleteOnboarding()
+    {
+        _settings.OnboardingSeen = true;
         SettingsStore.Save(_settings);
     }
 
@@ -578,6 +623,9 @@ public partial class MainWindowViewModel : ObservableObject
     partial void OnErrorMessageChanged(string value)
         => OnPropertyChanged(nameof(HasError));
 
+    partial void OnSummaryTextChanged(string value)
+        => OnPropertyChanged(nameof(HasSummary));
+
     partial void OnSelectedWikiSpaceChanged(WikiSpace? value)
     {
         if (value is null || _syncingSpaceSelection)
@@ -612,6 +660,8 @@ public partial class MainWindowViewModel : ObservableObject
     }
 
     partial void OnLicensePathChanged(string value) => UpdateLicenseStatus();
+
+    partial void OnThemeModeChanged(int value) => ThemeManager.Apply(value);
 
     #endregion
 }

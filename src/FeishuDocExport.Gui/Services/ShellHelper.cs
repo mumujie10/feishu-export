@@ -35,4 +35,33 @@ public static class ShellHelper
             return false;
         }
     }
+
+    /// <summary>用系统默认浏览器打开网址。</summary>
+    public static bool TryOpenUrl(string url, out string? error)
+    {
+        error = null;
+
+        try
+        {
+            if (OperatingSystem.IsWindows())
+            {
+                Process.Start(new ProcessStartInfo("explorer.exe", $"\"{url}\"") { UseShellExecute = true });
+            }
+            else if (OperatingSystem.IsMacOS())
+            {
+                Process.Start("open", new[] { url });
+            }
+            else
+            {
+                Process.Start("xdg-open", new[] { url });
+            }
+
+            return true;
+        }
+        catch (Exception ex)
+        {
+            error = ex.Message;
+            return false;
+        }
+    }
 }

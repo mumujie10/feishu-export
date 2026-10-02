@@ -4,265 +4,390 @@
         xmlns:models="clr-namespace:FeishuDocExport.Models;assembly=FeishuDocExport.Core"
         x:Class="FeishuDocExport.Gui.Views.MainWindow"
         x:DataType="vm:MainWindowViewModel"
-        Title="飞书文档导出工具"
-        Width="1120" Height="760"
-        MinWidth="960" MinHeight="640">
+        Title="飞书导出"
+        Width="1180" Height="860"
+        MinWidth="1000" MinHeight="680"
+        Background="{DynamicResource Brush.Page}">
 
-  <Window.Styles>
-    <Style Selector="TextBlock.section">
-      <Setter Property="FontWeight" Value="SemiBold" />
-      <Setter Property="FontSize" Value="14" />
-      <Setter Property="Margin" Value="0,4,0,0" />
-    </Style>
-    <Style Selector="TextBlock.label">
-      <Setter Property="Foreground" Value="#5F6368" />
-      <Setter Property="FontSize" Value="12" />
-      <Setter Property="Margin" Value="0,6,0,2" />
-    </Style>
-    <Style Selector="TextBlock.hint">
-      <Setter Property="Foreground" Value="#80868B" />
-      <Setter Property="FontSize" Value="11" />
-      <Setter Property="TextWrapping" Value="Wrap" />
-    </Style>
-    <Style Selector="Border.card">
-      <Setter Property="Background" Value="#FAFAFA" />
-      <Setter Property="BorderBrush" Value="#E3E3E3" />
-      <Setter Property="BorderThickness" Value="1" />
-      <Setter Property="CornerRadius" Value="6" />
-      <Setter Property="Padding" Value="12" />
-    </Style>
-  </Window.Styles>
+  <Grid RowDefinitions="Auto,Auto,*,Auto">
 
-  <Grid RowDefinitions="Auto,*,Auto">
-
-    <!-- 顶部错误提示条 -->
+    <!-- ============ 顶栏 ============ -->
     <Border Grid.Row="0"
-            IsVisible="{Binding HasError}"
-            Background="#FDECEA"
-            BorderBrush="#F5C6C0"
+            Background="{DynamicResource Brush.Card}"
+            BorderBrush="{DynamicResource Brush.Border.Subtle}"
             BorderThickness="0,0,0,1"
-            Padding="16,10">
+            Padding="20,12">
+      <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="14">
+        <StackPanel Orientation="Horizontal" Spacing="10">
+          <Border Width="28"
+                  Height="28"
+                  CornerRadius="8"
+                  Background="{DynamicResource Brush.Accent}">
+            <TextBlock Text="飞"
+                       FontSize="14"
+                       FontWeight="Bold"
+                       Foreground="{DynamicResource Brush.Accent.Text}"
+                       HorizontalAlignment="Center"
+                       VerticalAlignment="Center" />
+          </Border>
+          <StackPanel Spacing="1" VerticalAlignment="Center">
+            <TextBlock Text="飞书导出" FontWeight="SemiBold" FontSize="14" />
+            <TextBlock Classes="hint" Text="把知识库整个搬到本地" />
+          </StackPanel>
+        </StackPanel>
+
+        <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="10">
+          <StackPanel Orientation="Horizontal" Spacing="6" VerticalAlignment="Center">
+            <TextBlock Classes="hint" Text="外观" VerticalAlignment="Center" />
+            <ComboBox SelectedIndex="{Binding ThemeMode}" MinWidth="104" MinHeight="30">
+              <ComboBoxItem>跟随系统</ComboBoxItem>
+              <ComboBoxItem>浅色</ComboBoxItem>
+              <ComboBoxItem>深色</ComboBoxItem>
+            </ComboBox>
+          </StackPanel>
+
+          <Button Classes="ghost"
+                  Content="使用引导"
+                  Command="{Binding OpenGuideCommand}" />
+        </StackPanel>
+      </Grid>
+    </Border>
+
+    <!-- ============ 错误提示条 ============ -->
+    <Border Grid.Row="1"
+            Classes="badge-err"
+            Margin="20,14,20,0"
+            IsVisible="{Binding HasError}">
       <TextBlock Text="{Binding ErrorMessage}"
-                 Foreground="#B3261E"
+                 Foreground="{DynamicResource Brush.Err}"
                  TextWrapping="Wrap"
                  FontSize="13" />
     </Border>
 
-    <Grid Grid.Row="1" ColumnDefinitions="420,*">
+    <Grid Grid.Row="2" ColumnDefinitions="440,*" ColumnSpacing="18" Margin="20,16">
 
       <!-- ============ 左侧：配置 ============ -->
       <Grid Grid.Column="0" RowDefinitions="*,Auto">
         <ScrollViewer Grid.Row="0" VerticalScrollBarVisibility="Auto">
-          <StackPanel Margin="16,16,16,10" Spacing="10">
+          <StackPanel Spacing="10" Margin="0,0,6,10">
 
-          <TextBlock Text="1. 应用凭证" Classes="section" />
-          <Border Classes="card">
-            <StackPanel Spacing="2">
-              <TextBlock Text="AppId" Classes="label" />
-              <TextBox Text="{Binding AppId}" Watermark="cli_xxxxxxxxxxxx" />
+            <!-- 1 应用凭证 -->
+            <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="8">
+              <Border Classes="step-badge">
+                <TextBlock Classes="step-badge" Text="1" />
+              </Border>
+              <TextBlock Grid.Column="1"
+                         Classes="section"
+                         Margin="0"
+                         VerticalAlignment="Center"
+                         Text="应用凭证" />
+              <Button Grid.Column="2"
+                      Classes="help"
+                      Content="?"
+                      Command="{Binding OpenGuideCommand}"
+                      CommandParameter="app" />
+            </Grid>
 
-              <TextBlock Text="AppSecret" Classes="label" />
-              <TextBox Text="{Binding AppSecret}" PasswordChar="●" Watermark="应用密钥" />
+            <Border Classes="card">
+              <StackPanel Spacing="2">
+                <TextBlock Text="AppId" Classes="label" />
+                <TextBox Text="{Binding AppId}" Watermark="从开发者后台「凭证与基础信息」复制" />
 
-              <CheckBox Content="在本机记住 AppSecret"
-                        IsChecked="{Binding RememberAppSecret}"
-                        Margin="0,8,0,0" />
-              <TextBlock Classes="hint"
-                         Text="配置保存在本机用户目录的 FeishuDocExport/settings.json，AppSecret 为明文存储。" />
+                <TextBlock Text="AppSecret" Classes="label" />
+                <TextBox Text="{Binding AppSecret}" PasswordChar="●" Watermark="应用密钥" />
 
-              <TextBlock Text="开放平台地址" Classes="label" />
-              <ComboBox SelectedIndex="{Binding EndpointIndex}" HorizontalAlignment="Stretch">
-                <ComboBoxItem>飞书（open.feishu.cn）</ComboBoxItem>
-                <ComboBoxItem>Lark 国际版（open.larksuite.com）</ComboBoxItem>
-                <ComboBoxItem>自定义</ComboBoxItem>
-              </ComboBox>
-              <TextBox Text="{Binding BaseUrl}"
-                       IsEnabled="{Binding IsCustomEndpoint}"
-                       Margin="0,6,0,0" />
-            </StackPanel>
-          </Border>
+                <CheckBox Content="在本机记住 AppSecret"
+                          IsChecked="{Binding RememberAppSecret}"
+                          Margin="0,9,0,0" />
+                <TextBlock Classes="hint"
+                           Text="配置保存在本机用户目录的 FeishuDocExport/settings.json，AppSecret 为明文存储。" />
 
-          <TextBlock Text="2. 导出什么" Classes="section" />
-          <Border Classes="card">
-            <StackPanel Spacing="6">
-              <StackPanel Orientation="Horizontal" Spacing="16">
-                <RadioButton Content="知识库（wiki）"
-                             GroupName="SourceType"
-                             IsChecked="{Binding IsWikiSource}" />
-                <RadioButton Content="个人空间云文档"
-                             GroupName="SourceType"
-                             IsChecked="{Binding IsCloudDocSource}" />
+                <TextBlock Text="开放平台地址" Classes="label" />
+                <ComboBox SelectedIndex="{Binding EndpointIndex}" HorizontalAlignment="Stretch">
+                  <ComboBoxItem>飞书（open.feishu.cn）</ComboBoxItem>
+                  <ComboBoxItem>Lark 国际版（open.larksuite.com）</ComboBoxItem>
+                  <ComboBoxItem>自定义</ComboBoxItem>
+                </ComboBox>
+                <TextBox Text="{Binding BaseUrl}"
+                         IsEnabled="{Binding IsCustomEndpoint}"
+                         Margin="0,6,0,0" />
               </StackPanel>
+            </Border>
 
-              <!-- 知识库 -->
-              <StackPanel Spacing="2" IsVisible="{Binding IsWikiSource}">
-                <TextBlock Text="知识库" Classes="label" />
+            <!-- 2 导出什么 -->
+            <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="8" Margin="0,8,0,0">
+              <Border Classes="step-badge">
+                <TextBlock Classes="step-badge" Text="2" />
+              </Border>
+              <TextBlock Grid.Column="1"
+                         Classes="section"
+                         Margin="0"
+                         VerticalAlignment="Center"
+                         Text="导出什么" />
+              <Button Grid.Column="2"
+                      Classes="help"
+                      Content="?"
+                      Command="{Binding OpenGuideCommand}"
+                      CommandParameter="target" />
+            </Grid>
+
+            <Border Classes="card">
+              <StackPanel Spacing="6">
+                <StackPanel Orientation="Horizontal" Spacing="16">
+                  <RadioButton Content="知识库（wiki）"
+                               GroupName="SourceType"
+                               IsChecked="{Binding IsWikiSource}" />
+                  <RadioButton Content="个人空间云文档"
+                               GroupName="SourceType"
+                               IsChecked="{Binding IsCloudDocSource}" />
+                </StackPanel>
+
+                <!-- 知识库 -->
+                <StackPanel Spacing="2" IsVisible="{Binding IsWikiSource}">
+                  <TextBlock Text="知识库" Classes="label" />
+                  <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8">
+                    <ComboBox ItemsSource="{Binding WikiSpaces}"
+                              SelectedItem="{Binding SelectedWikiSpace}"
+                              HorizontalAlignment="Stretch"
+                              PlaceholderText="点右侧「获取列表」再选择">
+                      <ComboBox.ItemTemplate>
+                        <DataTemplate x:DataType="models:WikiSpace">
+                          <TextBlock Text="{Binding Name}" />
+                        </DataTemplate>
+                      </ComboBox.ItemTemplate>
+                    </ComboBox>
+                    <Button Grid.Column="1"
+                            Classes="ghost"
+                            Content="获取列表"
+                            Command="{Binding LoadSpacesCommand}"
+                            IsEnabled="{Binding !IsBusy}" />
+                  </Grid>
+
+                  <TextBlock Classes="hint"
+                             Text="下拉框里没有想要的知识库？多半是那个知识库还没授权给应用。" />
+                  <Button Classes="link"
+                          Content="看怎么把知识库授权给应用"
+                          Command="{Binding OpenGuideCommand}"
+                          CommandParameter="grant"
+                          HorizontalAlignment="Left" />
+
+                  <TextBlock Text="也可以直接填写知识库 Id（spaceId）" Classes="label" />
+                  <TextBox Text="{Binding WikiSpaceId}" Watermark="例如 6872xxxxxxxxxxxx" />
+                </StackPanel>
+
+                <!-- 个人空间云文档 -->
+                <StackPanel Spacing="2" IsVisible="{Binding IsCloudDocSource}">
+                  <Grid ColumnDefinitions="*,Auto" ColumnSpacing="6">
+                    <TextBlock Text="文件夹 Token（folderToken）" Classes="label" />
+                    <Button Grid.Column="1"
+                            Classes="help"
+                            Content="?"
+                            Command="{Binding OpenGuideCommand}"
+                            CommandParameter="grant" />
+                  </Grid>
+                  <TextBox Text="{Binding FolderToken}" Watermark="把文件夹分享给自建应用后，从链接中获取" />
+                  <TextBlock Classes="hint"
+                             Text="个人空间不支持列举文件夹，必须先把文件夹分享给自建应用，再手动填写 folderToken。" />
+                </StackPanel>
+              </StackPanel>
+            </Border>
+
+            <!-- 3 导出设置 -->
+            <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="8" Margin="0,8,0,0">
+              <Border Classes="step-badge">
+                <TextBlock Classes="step-badge" Text="3" />
+              </Border>
+              <TextBlock Grid.Column="1"
+                         Classes="section"
+                         Margin="0"
+                         VerticalAlignment="Center"
+                         Text="导出设置" />
+              <Button Grid.Column="2"
+                      Classes="help"
+                      Content="?"
+                      Command="{Binding OpenGuideCommand}"
+                      CommandParameter="export" />
+            </Grid>
+
+            <Border Classes="card">
+              <StackPanel Spacing="2">
+                <TextBlock Text="导出目录" Classes="label" />
                 <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8">
-                  <ComboBox ItemsSource="{Binding WikiSpaces}"
-                            SelectedItem="{Binding SelectedWikiSpace}"
-                            HorizontalAlignment="Stretch"
-                            PlaceholderText="点击右侧按钮获取列表">
-                    <ComboBox.ItemTemplate>
-                      <DataTemplate x:DataType="models:WikiSpace">
-                        <TextBlock Text="{Binding Name}" />
-                      </DataTemplate>
-                    </ComboBox.ItemTemplate>
-                  </ComboBox>
+                  <TextBox Text="{Binding ExportPath}" Watermark="选择一个本地目录" />
                   <Button Grid.Column="1"
-                          Content="获取列表"
-                          Command="{Binding LoadSpacesCommand}"
-                          IsEnabled="{Binding !IsBusy}" />
+                          Classes="ghost"
+                          Content="浏览…"
+                          Command="{Binding BrowseExportPathCommand}" />
                 </Grid>
 
-                <TextBlock Text="也可以直接填写知识库 Id（spaceId）" Classes="label" />
-                <TextBox Text="{Binding WikiSpaceId}" Watermark="例如 6872xxxxxxxxxxxx" />
-              </StackPanel>
-
-              <!-- 个人空间云文档 -->
-              <StackPanel Spacing="2" IsVisible="{Binding IsCloudDocSource}">
-                <TextBlock Text="文件夹 Token（folderToken）" Classes="label" />
-                <TextBox Text="{Binding FolderToken}" Watermark="把目标文件夹分享给自建应用后，从链接中获取" />
+                <Grid ColumnDefinitions="*,Auto" ColumnSpacing="6">
+                  <TextBlock Text="文档保存格式" Classes="label" />
+                  <Button Grid.Column="1"
+                          Classes="help"
+                          Content="?"
+                          Command="{Binding OpenGuideCommand}"
+                          CommandParameter="export" />
+                </Grid>
+                <ComboBox SelectedIndex="{Binding FormatIndex}" HorizontalAlignment="Stretch">
+                  <ComboBoxItem>Word 文档（.docx）</ComboBoxItem>
+                  <ComboBoxItem>PDF（.pdf）</ComboBoxItem>
+                  <ComboBoxItem>Markdown（.md）</ComboBoxItem>
+                </ComboBox>
                 <TextBlock Classes="hint"
-                           Text="个人空间不支持列举文件夹，必须先把文件夹分享给自建应用，并手动填写 folderToken。" />
+                           Text="表格类文档固定导出为 xlsx；云空间中的普通文件（pdf/zip/图片等）按原格式下载。Markdown 由 docx 本地转换而来，会丢失部分格式。" />
+
+                <TextBlock Text="Aspose.Words 许可证（仅 Markdown 需要）" Classes="label" />
+                <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8">
+                  <TextBox Text="{Binding LicensePath}" Watermark="留空则自动查找，找不到会加评估水印" />
+                  <Button Grid.Column="1"
+                          Classes="ghost"
+                          Content="浏览…"
+                          Command="{Binding BrowseLicenseCommand}" />
+                </Grid>
+                <TextBlock Classes="hint" Text="{Binding LicenseStatusText}" />
+
+                <CheckBox Content="跳过已存在的文件（中断后可重跑）"
+                          IsChecked="{Binding SkipExistingFiles}"
+                          Margin="0,10,0,0" />
               </StackPanel>
-            </StackPanel>
-          </Border>
-
-          <TextBlock Text="3. 导出设置" Classes="section" />
-          <Border Classes="card">
-            <StackPanel Spacing="2">
-              <TextBlock Text="导出目录" Classes="label" />
-              <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8">
-                <TextBox Text="{Binding ExportPath}" Watermark="选择一个本地目录" />
-                <Button Grid.Column="1" Content="浏览…" Command="{Binding BrowseExportPathCommand}" />
-              </Grid>
-
-              <TextBlock Text="文档保存格式" Classes="label" />
-              <ComboBox SelectedIndex="{Binding FormatIndex}" HorizontalAlignment="Stretch">
-                <ComboBoxItem>Word 文档（.docx）</ComboBoxItem>
-                <ComboBoxItem>PDF（.pdf）</ComboBoxItem>
-                <ComboBoxItem>Markdown（.md）</ComboBoxItem>
-              </ComboBox>
-              <TextBlock Classes="hint"
-                         Text="表格类文档固定导出为 xlsx；云空间中的普通文件（pdf/zip/图片等）按原格式下载。Markdown 由 docx 本地转换而来，会丢失部分格式。" />
-
-              <TextBlock Text="Aspose.Words 许可证（仅 Markdown 需要）" Classes="label" />
-              <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8">
-                <TextBox Text="{Binding LicensePath}" Watermark="留空则自动查找，找不到会加评估水印" />
-                <Button Grid.Column="1" Content="浏览…" Command="{Binding BrowseLicenseCommand}" />
-              </Grid>
-              <TextBlock Classes="hint" Text="{Binding LicenseStatusText}" />
-
-              <CheckBox Content="跳过已存在的文件（中断后可重跑）"
-                        IsChecked="{Binding SkipExistingFiles}"
-                        Margin="0,10,0,0" />
-            </StackPanel>
-          </Border>
+            </Border>
 
           </StackPanel>
         </ScrollViewer>
 
-        <!-- 主操作按钮固定在底部，不会被内容挤出可视区域 -->
+        <!-- 主操作按钮固定底部 -->
         <Border Grid.Row="1"
-                Padding="16,10,16,14"
-                Background="#FAFAFA"
-                BorderBrush="#E3E3E3"
+                Padding="0,12,6,0"
+                Background="{DynamicResource Brush.Page}"
+                BorderBrush="{DynamicResource Brush.Border.Subtle}"
                 BorderThickness="0,1,0,0">
           <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8">
-            <Button Content="开始导出"
+            <Button Classes="primary"
+                    Content="开始导出"
                     Command="{Binding StartCommand}"
                     IsEnabled="{Binding !IsBusy}"
                     HorizontalAlignment="Stretch"
-                    HorizontalContentAlignment="Center"
-                    Background="#1A73E8"
-                    Foreground="White"
-                    Padding="0,10"
-                    FontWeight="SemiBold" />
+                    HorizontalContentAlignment="Center" />
             <Button Grid.Column="1"
+                    Classes="ghost"
                     Content="取消"
                     Command="{Binding CancelCommand}"
                     IsEnabled="{Binding IsBusy}"
-                    Padding="20,10" />
+                    Padding="18,0" />
           </Grid>
         </Border>
       </Grid>
 
       <!-- ============ 右侧：进度与结果 ============ -->
-      <Grid Grid.Column="1" RowDefinitions="Auto,*" Margin="0,16,16,0">
+      <Grid Grid.Column="1" RowDefinitions="Auto,*">
 
-        <StackPanel Spacing="8">
-          <TextBlock Text="{Binding SummaryText}"
-                     FontSize="15"
-                     FontWeight="SemiBold"
-                     TextWrapping="Wrap"
-                     MinHeight="22" />
-          <ProgressBar Value="{Binding ProgressValue}"
-                       Minimum="0"
-                       Maximum="100"
-                       Height="16" />
-          <TextBlock Text="{Binding ProgressText}"
-                     Foreground="#5F6368"
-                     FontSize="12"
-                     TextWrapping="Wrap"
-                     MaxHeight="40" />
-          <TextBlock Text="{Binding FailureSummary}"
-                     Foreground="#5F6368"
-                     FontSize="12"
-                     TextWrapping="Wrap" />
-        </StackPanel>
+        <Border Classes="card">
+          <StackPanel Spacing="8">
+            <TextBlock Text="{Binding SummaryText}"
+                       Classes="metric"
+                       TextWrapping="Wrap"
+                       IsVisible="{Binding HasSummary}" />
+            <ProgressBar Value="{Binding ProgressValue}"
+                         Minimum="0"
+                         Maximum="100" />
+            <TextBlock Text="{Binding ProgressText}" Classes="dim" />
+            <TextBlock Text="{Binding FailureSummary}"
+                       Classes="hint"
+                       Foreground="{DynamicResource Brush.Text.Secondary}" />
+          </StackPanel>
+        </Border>
 
-        <TabControl Grid.Row="1" Margin="0,12,0,0">
+        <TabControl Grid.Row="1" Margin="0,14,0,0">
           <TabItem Header="运行日志">
             <Grid RowDefinitions="*,Auto">
-              <ListBox Name="LogList"
-                       ItemsSource="{Binding Logs}"
-                       Background="White"
-                       BorderBrush="#E3E3E3"
-                       BorderThickness="1">
-                <ListBox.ItemTemplate>
-                  <DataTemplate x:DataType="vm:LogEntry">
-                    <Grid ColumnDefinitions="Auto,Auto,*" ColumnSpacing="8">
-                      <TextBlock Text="{Binding Time}" Foreground="#9AA0A6" FontSize="12" />
-                      <TextBlock Grid.Column="1" Text="{Binding Level}" FontSize="12" Width="28" Foreground="#9AA0A6" />
-                      <TextBlock Grid.Column="2" Text="{Binding Message}" TextWrapping="Wrap" FontSize="12" />
-                    </Grid>
-                  </DataTemplate>
-                </ListBox.ItemTemplate>
-              </ListBox>
-              <StackPanel Grid.Row="1" Orientation="Horizontal" Spacing="8" Margin="0,8,0,0">
-                <Button Content="清空日志" Command="{Binding ClearLogsCommand}" />
-                <Button Content="打开导出目录" Command="{Binding OpenExportFolderCommand}" />
+              <Grid>
+                <ListBox x:Name="LogList" ItemsSource="{Binding Logs}">
+                  <ListBox.ItemTemplate>
+                    <DataTemplate x:DataType="vm:LogEntry">
+                      <Grid ColumnDefinitions="Auto,Auto,*" ColumnSpacing="8">
+                        <TextBlock Text="{Binding Time}"
+                                   Classes="hint"
+                                   FontSize="11.5" />
+                        <TextBlock Grid.Column="1"
+                                   Text="{Binding Level}"
+                                   FontSize="11.5"
+                                   Width="30"
+                                   Foreground="{DynamicResource Brush.Text.Muted}" />
+                        <TextBlock Grid.Column="2"
+                                   Text="{Binding Message}"
+                                   FontSize="12.5"
+                                   Foreground="{DynamicResource Brush.Text}"
+                                   TextWrapping="Wrap" />
+                      </Grid>
+                    </DataTemplate>
+                  </ListBox.ItemTemplate>
+                </ListBox>
+
+                <TextBlock Text="还没有日志。点左侧「开始导出」后，这里会逐篇显示进度。"
+                           Classes="hint"
+                           HorizontalAlignment="Center"
+                           VerticalAlignment="Center"
+                           IsVisible="{Binding !HasLogs}" />
+              </Grid>
+
+              <StackPanel Grid.Row="1" Orientation="Horizontal" Spacing="8" Margin="0,10,0,0">
+                <Button Classes="ghost"
+                        Content="清空日志"
+                        Command="{Binding ClearLogsCommand}" />
+                <Button Classes="ghost"
+                        Content="打开导出目录"
+                        Command="{Binding OpenExportFolderCommand}" />
               </StackPanel>
             </Grid>
           </TabItem>
 
           <TabItem Header="未导出清单">
-            <ListBox ItemsSource="{Binding Failures}"
-                     Background="White"
-                     BorderBrush="#E3E3E3"
-                     BorderThickness="1">
-              <ListBox.ItemTemplate>
-                <DataTemplate x:DataType="vm:FailureItem">
-                  <StackPanel Spacing="2" Margin="0,2">
-                    <StackPanel Orientation="Horizontal" Spacing="8">
-                      <Border Background="#FCE8E6" CornerRadius="3" Padding="6,1">
-                        <TextBlock Text="{Binding Kind}" FontSize="11" Foreground="#B3261E" />
-                      </Border>
-                      <TextBlock Text="{Binding Title}" FontWeight="SemiBold" TextWrapping="Wrap" />
+            <Grid>
+              <ListBox ItemsSource="{Binding Failures}">
+                <ListBox.ItemTemplate>
+                  <DataTemplate x:DataType="vm:FailureItem">
+                    <StackPanel Spacing="3" Margin="0,3">
+                      <StackPanel Orientation="Horizontal" Spacing="8">
+                        <Border Classes="chip">
+                          <TextBlock Text="{Binding Kind}"
+                                     FontSize="11"
+                                     Foreground="{DynamicResource Brush.Accent.OnSoft}" />
+                        </Border>
+                        <TextBlock Text="{Binding Title}"
+                                   FontWeight="SemiBold"
+                                   FontSize="12.5"
+                                   Foreground="{DynamicResource Brush.Text}"
+                                   TextWrapping="Wrap" />
+                      </StackPanel>
+                      <TextBlock Text="{Binding Reason}"
+                                 Classes="hint"
+                                 Foreground="{DynamicResource Brush.Text.Secondary}" />
                     </StackPanel>
-                    <TextBlock Text="{Binding Reason}" Foreground="#5F6368" FontSize="12" TextWrapping="Wrap" />
-                  </StackPanel>
-                </DataTemplate>
-              </ListBox.ItemTemplate>
-            </ListBox>
+                  </DataTemplate>
+                </ListBox.ItemTemplate>
+              </ListBox>
+
+              <TextBlock Text="所有能导的文档都在这里了。思维笔记、幻灯片、妙记需要你在飞书里手动导出。"
+                         Classes="hint"
+                         HorizontalAlignment="Center"
+                         VerticalAlignment="Center"
+                         IsVisible="{Binding !HasFailures}" />
+            </Grid>
           </TabItem>
         </TabControl>
       </Grid>
     </Grid>
 
-    <!-- 底部状态栏 -->
-    <Border Grid.Row="2" Background="#F1F3F4" Padding="16,6" BorderBrush="#E3E3E3" BorderThickness="0,1,0,0">
-      <TextBlock Text="{Binding StatusText}" FontSize="12" Foreground="#5F6368" TextWrapping="NoWrap" />
+    <!-- ============ 底部状态栏 ============ -->
+    <Border Grid.Row="3"
+            Background="{DynamicResource Brush.Card}"
+            BorderBrush="{DynamicResource Brush.Border.Subtle}"
+            BorderThickness="0,1,0,0"
+            Padding="20,7">
+      <TextBlock Text="{Binding StatusText}"
+                 Classes="hint"
+                 TextTrimming="CharacterEllipsis"
+                 VerticalAlignment="Center" />
     </Border>
   </Grid>
 </Window>
