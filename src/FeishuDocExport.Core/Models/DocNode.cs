@@ -27,6 +27,13 @@ public sealed class DocNode
     /// <summary>父节点标识，根节点为 null。</summary>
     public string? ParentKey { get; init; }
 
+    /// <summary>
+    /// 飞书侧的编辑时间，原样保留接口返回的字符串。
+    /// wiki 节点来自 <c>obj_edit_time</c>，云文档来自 <c>modified_time</c>。
+    /// 增量导出靠它判断文档有没有变过，拿不到时为 null（此时一律重新导出）。
+    /// </summary>
+    public string? EditTime { get; init; }
+
     /// <summary>是否为纯目录（云文档的 folder）。</summary>
     public bool IsFolder => string.Equals(ObjType, "folder", StringComparison.OrdinalIgnoreCase);
 

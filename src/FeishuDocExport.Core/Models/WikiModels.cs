@@ -89,6 +89,10 @@ public sealed class WikiNodePagedList : IPagedList<WikiNode>
     [JsonPropertyName("has_more")]
     public bool HasMore { get; set; }
 
+    // Items 是派生属性，不参与 JSON。不标 JsonIgnore 的话，在
+    // PropertyNameCaseInsensitive 下它会和映射成 "items" 的 ItemList 判为同名冲突，
+    // 反序列化直接抛 InvalidOperationException。
+    [JsonIgnore]
     public IReadOnlyList<WikiNode> Items => ItemList ?? (IReadOnlyList<WikiNode>)Array.Empty<WikiNode>();
 }
 
@@ -104,5 +108,6 @@ public sealed class WikiSpacePagedList : IPagedList<WikiSpace>
     [JsonPropertyName("has_more")]
     public bool HasMore { get; set; }
 
+    [JsonIgnore]
     public IReadOnlyList<WikiSpace> Items => ItemList ?? (IReadOnlyList<WikiSpace>)Array.Empty<WikiSpace>();
 }

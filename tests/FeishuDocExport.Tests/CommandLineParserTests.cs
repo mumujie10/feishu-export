@@ -222,4 +222,102 @@ public class CommandLineParserTests
             Environment.SetEnvironmentVariable(CommandLineParser.AppIdEnvironmentVariable, null);
         }
     }
+
+    private static string[] BaseArgs => new[]
+    {
+        "--appId=cli_1",
+        "--appSecret=s1",
+        $"--exportPath={Path.Combine(Path.GetTempPath(), "out")}",
+        "--spaceId=sp1",
+    };
+
+    [Fact]
+    public void 增量开关只影响增量字段()
+    {
+        var parsed = CommandLineParser.Parse(BaseArgs.Append("--incremental").ToArray());
+
+        Assert.Null(parsed.Error);
+        Assert.True(parsed.Options.Incremental);
+        Assert.False(parsed.Scheduled);
+    }
+
+    [Theory]
+    [InlineData("45s", 45)]
+    [InlineData("30m", 1800)]
+    [InlineData("6h", 21600)]
+    [InlineData("1d", 86400)]
+    public void interval支持秒分时天(string text, double seconds)
+    {
+        var parsed = CommandLineParser.Parse(BaseArgs.Append($"--interval={text}").ToArray());
+
+        Assert.Null(parsed.Error);
+        Assert.Equal(TimeSpan.FromSeconds(seconds), parsed.Interval);
+        Assert.True(parsed.Scheduled);
+    }
+
+    [Fact]
+    public void 定时模式自动启用增量()
+    {
+        var parsed = CommandLineParser.Parse(BaseArgs.Append("--interval=6h").ToArray());
+
+        Assert.True(parsed.Options.Incremental);
+    }
+
+    [Theory]
+    [InlineData("6x")]
+    [InlineData("h6")]
+    [InlineData("0s")]
+    [InlineData("-1h")]
+    public void 非法interval报参数错误(string text)
+    {
+        var parsed = CommandLineParser.Parse(BaseArgs.Append($"--interval={text}").ToArray());
+
+        Assert.NotNull(parsed.Error);
+        Assert.Contains("--interval", parsed.Error);
+    }
+
+    [Fact]
+    public void at解析成每天的时刻()
+    {
+        var parsed = CommandLineParser.Parse(BaseArgs.Append("--at=03:00").ToArray());
+
+        Assert.Null(parsed.Error);
+        Assert.Equal(new TimeOnly(3, 0), parsed.DailyAt);
+        Assert.True(parsed.Scheduled);
+    }
+
+    [Fact]
+    public void 非法at报参数错误()
+    {
+        var parsed = CommandLineParser.Parse(BaseArgs.Append("--at=25:99").ToArray());
+
+        Assert.NotNull(parsed.Error);
+        Assert.Contains("--at", parsed.Error);
+    }
+
+    [Fact]
+    public void interval与at只能二选一()
+    {
+        var parsed = CommandLineParser.Parse(
+            BaseArgs.Concat(new[] { "--at=03:00", "--interval=6h" }).ToArray());
+
+        Assert.NotNull(parsed.Error);
+        Assert.Contains("二选一", parsed.Error);
+    }
+
+    [Fact]
+    public void 定时模式必须显式给出知识库Id()
+    {
+        // 常驻进程没人能在控制台里替它选知识库，所以 spaceId 不能留空
+        var parsed = CommandLineParser.Parse(new[]
+        {
+            "--appId=cli_1",
+            "--appSecret=s1",
+            $"--exportPath={Path.Combine(Path.GetTempPath(), "out")}",
+            "--at=03:00",
+        });
+
+        Assert.NotNull(parsed.Error);
+        Assert.Contains("spaceId", parsed.Error);
+    }
 }

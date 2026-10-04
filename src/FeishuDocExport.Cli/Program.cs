@@ -1,3 +1,5 @@
+using System.Runtime.InteropServices;
+
 namespace FeishuDocExport.Cli;
 
 /// <summary>把导出进度直接输出到控制台。</summary>
@@ -59,23 +61,51 @@ internal static class Program
             return ExitInvalidArguments;
         }
 
+        using var cts = new CancellationTokenSource();
+
+        Console.CancelKeyPress += (_, e) =>
+        {
+            e.Cancel = true;
+            Console.WriteLine("收到中断信号，正在安全退出…");
+            cts.Cancel();
+        };
+
+        // 容器里本进程是 PID 1，docker stop 发的是 SIGTERM，不接住就来不及写状态文件
+        PosixSignalRegistration? sigTerm = null;
+        if (!OperatingSystem.IsWindows())
+        {
+            sigTerm = PosixSignalRegistration.Create(PosixSignal.SIGTERM, ctx =>
+            {
+                ctx.Cancel = true;
+                Console.WriteLine("收到 SIGTERM，正在安全退出…");
+                cts.Cancel();
+            });
+        }
+
+        try
+        {
+            return parsed.Scheduled
+                ? await RunLoopAsync(options, parsed, cts.Token)
+                : await RunOnceAsync(options, interactive: true, ct: cts.Token);
+        }
+        finally
+        {
+            sigTerm?.Dispose();
+        }
+    }
+
+    /// <summary>跑一轮完整导出，返回退出码。</summary>
+    private static async Task<int> RunOnceAsync(ExportOptions options, bool interactive, CancellationToken ct)
+    {
         try
         {
             using var client = new FeishuApiClient(options);
             var service = new ExportService(client);
             var progress = new ConsoleProgress();
 
-            using var cts = new CancellationTokenSource();
-            Console.CancelKeyPress += (_, e) =>
+            if (interactive && options.SourceType == DocSourceType.Wiki && string.IsNullOrWhiteSpace(options.WikiSpaceId))
             {
-                e.Cancel = true;
-                Console.WriteLine("收到中断信号，正在安全退出…");
-                cts.Cancel();
-            };
-
-            if (options.SourceType == DocSourceType.Wiki && string.IsNullOrWhiteSpace(options.WikiSpaceId))
-            {
-                options.WikiSpaceId = await SelectWikiSpaceAsync(service, cts.Token);
+                options.WikiSpaceId = await SelectWikiSpaceAsync(service, ct);
             }
 
             var validationErrors = options.Validate();
@@ -90,13 +120,18 @@ internal static class Program
                 return ExitInvalidArguments;
             }
 
-            var result = await service.RunAsync(options, progress, cts.Token);
+            var result = await service.RunAsync(options, progress, ct);
 
             Console.WriteLine();
             Console.WriteLine(new string('—', 60));
+
+            var stats = options.Incremental
+                ? $"（新增 {result.Added}、更新 {result.Updated}、未变动跳过 {result.Unchanged}）"
+                : string.Empty;
+
             Console.WriteLine(result.Canceled
-                ? $"导出已取消：成功 {result.Succeeded}/{result.Total}，耗时 {result.Elapsed.TotalSeconds:0} 秒。"
-                : $"导出完成：成功 {result.Succeeded}/{result.Total}，耗时 {result.Elapsed.TotalSeconds:0} 秒。");
+                ? $"导出已取消：成功 {result.Succeeded}/{result.Total}{stats}，耗时 {result.Elapsed.TotalSeconds:0} 秒。"
+                : $"导出完成：成功 {result.Succeeded}/{result.Total}{stats}，耗时 {result.Elapsed.TotalSeconds:0} 秒。");
 
             if (result.Failures.Count > 0)
             {
@@ -116,6 +151,11 @@ internal static class Program
 
             return result.Failures.Count == 0 ? ExitSuccess : ExitPartialFailure;
         }
+        catch (OperationCanceledException)
+        {
+            Console.WriteLine("已取消。");
+            return ExitFatal;
+        }
         catch (FeishuApiException ex)
         {
             Console.Error.WriteLine($"【ERROR】{ex.ToUserMessage()}");
@@ -132,6 +172,96 @@ internal static class Program
             Console.Error.WriteLine(ex.StackTrace);
             return ExitFatal;
         }
+    }
+
+    /// <summary>
+    /// 常驻定时模式：按 --interval 或 --at 一轮接一轮地跑增量导出。
+    /// 单轮失败只记日志不退出，否则容器会被重启策略反复拉起、每轮都从头再来。
+    /// </summary>
+    private static async Task<int> RunLoopAsync(ExportOptions options, ParsedCommandLine parsed, CancellationToken ct)
+    {
+        Console.WriteLine(parsed.Interval is { } span
+            ? $"定时模式：每隔 {FormatInterval(span)} 增量导出一次。"
+            : $"定时模式：每天 {parsed.DailyAt!.Value:HH:mm} 增量导出一次（本地时区）。");
+        Console.WriteLine($"导出目录：{options.ExportPath}");
+        Console.WriteLine("按 Ctrl+C 停止。");
+        Console.WriteLine();
+
+        var round = 0;
+
+        while (!ct.IsCancellationRequested)
+        {
+            round++;
+            Console.WriteLine($"===== 第 {round} 轮 · {DateTime.Now:yyyy-MM-dd HH:mm:ss} =====");
+
+            await RunOnceAsync(options, interactive: false, ct);
+
+            if (ct.IsCancellationRequested)
+            {
+                break;
+            }
+
+            var wait = TimeUntil(parsed.Interval, parsed.DailyAt, DateTimeOffset.Now);
+            Console.WriteLine($"下一轮：{DateTime.Now.Add(wait):yyyy-MM-dd HH:mm:ss}（{FormatInterval(wait)} 后）");
+            Console.WriteLine();
+
+            try
+            {
+                await Task.Delay(wait, ct);
+            }
+            catch (OperationCanceledException)
+            {
+                break;
+            }
+        }
+
+        Console.WriteLine("定时任务已停止。");
+        return ExitSuccess;
+    }
+
+    private static TimeSpan TimeUntil(TimeSpan? interval, TimeOnly? dailyAt, DateTimeOffset now)
+    {
+        if (interval is { } span)
+        {
+            return span;
+        }
+
+        var local = now.LocalDateTime;
+        var next = local.Date + dailyAt!.Value.ToTimeSpan();
+
+        if (next <= local)
+        {
+            next = next.AddDays(1);
+        }
+
+        return next - local;
+    }
+
+    private static string FormatInterval(TimeSpan value)
+    {
+        var parts = new List<string>();
+
+        if (value.Days > 0)
+        {
+            parts.Add($"{value.Days} 天");
+        }
+
+        if (value.Hours > 0)
+        {
+            parts.Add($"{value.Hours} 小时");
+        }
+
+        if (value.Minutes > 0)
+        {
+            parts.Add($"{value.Minutes} 分钟");
+        }
+
+        if (value.Seconds > 0 || parts.Count == 0)
+        {
+            parts.Add($"{value.Seconds} 秒");
+        }
+
+        return string.Join(" ", parts);
     }
 
     private static void TrySetUtf8Output()
@@ -199,12 +329,31 @@ internal static class Program
 
         if (options.SourceType == DocSourceType.CloudDoc)
         {
-            options.FolderToken = PromptRequired("请输入要导出的个人空间文件夹 Token：");
+            Console.Write("请输入要导出的文件夹 Token，或直接粘贴文件夹分享链接：");
+            options.FolderToken = NullIfEmpty(DocLinkParser.ExtractFolderToken(Console.ReadLine(), out var folderError));
+
+            if (folderError is not null)
+            {
+                Console.WriteLine(folderError);
+                return false;
+            }
+
+            if (string.IsNullOrWhiteSpace(options.FolderToken))
+            {
+                Console.WriteLine("该项不能为空。");
+                return false;
+            }
         }
         else
         {
-            Console.Write("请输入知识库 Id（直接回车则列出全部知识库供选择）：");
-            options.WikiSpaceId = NullIfEmpty(Console.ReadLine());
+            Console.Write("请输入知识库 Id，或直接粘贴知识库链接（直接回车则列出全部知识库供选择）：");
+            options.WikiSpaceId = NullIfEmpty(DocLinkParser.ExtractSpaceId(Console.ReadLine(), out var spaceError));
+
+            if (spaceError is not null)
+            {
+                Console.WriteLine(spaceError);
+                return false;
+            }
         }
 
         options.ExportPath = PromptRequired("请输入文档导出的目录（绝对路径，不存在会自动创建）：");

@@ -5,7 +5,7 @@
 # 用法：
 #   ./scripts/build-dmg.sh                 # 默认打包当前机器架构（Apple Silicon → osx-arm64）
 #   ./scripts/build-dmg.sh osx-x64         # 打包 Intel 版
-#   ./scripts/build-dmg.sh osx-arm64 1.0.1 # 指定版本号
+#   ./scripts/build-dmg.sh osx-arm64 1.1.1 # 指定版本号
 #
 # 产物：dist/feishu-export-<version>-<rid>.dmg
 #
@@ -16,7 +16,7 @@ ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$ROOT"
 
 RID="${1:-osx-arm64}"
-VERSION="${2:-1.0.0}"
+VERSION="${2:-1.1.0}"
 
 APP_NAME="飞书导出"
 BUNDLE_ID="com.feisudoc.export.gui"

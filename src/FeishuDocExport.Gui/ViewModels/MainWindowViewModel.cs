@@ -1,5 +1,6 @@
 using System.Collections.ObjectModel;
 using System.ComponentModel;
+using System.Globalization;
 using Avalonia.Controls;
 using Avalonia.Platform.Storage;
 using Avalonia.Threading;
@@ -75,8 +76,35 @@ public partial class MainWindowViewModel : ObservableObject
     [ObservableProperty]
     private string _licensePath = string.Empty;
 
+    /// <summary>同步方式：0=全部重新导出，1=跳过已存在的文件，2=只导新增和改动的。</summary>
     [ObservableProperty]
-    private bool _skipExistingFiles;
+    private int _syncModeIndex = 2;
+
+    #endregion
+
+    #region 自动同步
+
+    /// <summary>是否开启自动同步。需要程序保持开着，无人值守请用命令行或 Docker。</summary>
+    [ObservableProperty]
+    private bool _autoSyncEnabled;
+
+    /// <summary>自动同步方式：0=固定间隔，1=每天定点。</summary>
+    [ObservableProperty]
+    private int _autoSyncModeIndex = 1;
+
+    /// <summary>固定间隔的小时数。</summary>
+    [ObservableProperty]
+    private decimal _autoSyncIntervalHours = 6;
+
+    /// <summary>每天定点的 24 小时制时刻，形如 03:00。</summary>
+    [ObservableProperty]
+    private string _autoSyncAtTime = "03:00";
+
+    /// <summary>自动同步的状态提示：下次运行时间，或时间格式不对。</summary>
+    [ObservableProperty]
+    private string _autoSyncHint = string.Empty;
+
+    private DispatcherTimer? _autoSyncTimer;
 
     #endregion
 
@@ -247,6 +275,41 @@ public partial class MainWindowViewModel : ObservableObject
         }
     }
 
+    /// <summary>
+    /// 把输入框里的链接归一化成 Token（用户手里只有链接，没有 Token）。
+    /// 解析不了就把原因显示出来，返回 false 让调用方别继续。
+    /// </summary>
+    private bool TryNormalizeTargets()
+    {
+        ClearError();
+
+        var spaceId = DocLinkParser.ExtractSpaceId(WikiSpaceId, out var spaceError);
+        if (spaceError is not null)
+        {
+            ShowError(spaceError);
+            return false;
+        }
+
+        if (spaceId is not null && spaceId != WikiSpaceId)
+        {
+            WikiSpaceId = spaceId;
+        }
+
+        var folderToken = DocLinkParser.ExtractFolderToken(FolderToken, out var folderError);
+        if (folderError is not null)
+        {
+            ShowError(folderError);
+            return false;
+        }
+
+        if (folderToken is not null && folderToken != FolderToken)
+        {
+            FolderToken = folderToken;
+        }
+
+        return true;
+    }
+
     [RelayCommand]
     private async Task LoadSpacesAsync()
     {
@@ -282,7 +345,8 @@ public partial class MainWindowViewModel : ObservableObject
 
             if (WikiSpaces.Count == 0)
             {
-                ShowError("当前应用没有任何可导出的知识库，请检查应用权限与知识库成员设置。");
+                ShowError("应用能看到 0 个知识库。如果还没授权，按「使用引导」第 3 节把群加进知识库成员；"
+                          + "如果已经能打开知识库，多半是列表接口不体现这种授权——直接把知识库链接贴到下面的输入框就行。");
                 return;
             }
 
@@ -311,6 +375,11 @@ public partial class MainWindowViewModel : ObservableObject
     private async Task StartAsync()
     {
         if (IsBusy)
+        {
+            return;
+        }
+
+        if (!TryNormalizeTargets())
         {
             return;
         }
@@ -421,6 +490,124 @@ public partial class MainWindowViewModel : ObservableObject
 
     #endregion
 
+    #region 自动同步
+
+    /// <summary>单选框绑定用：写回时翻译成 AutoSyncModeIndex。</summary>
+    public bool AutoSyncByInterval
+    {
+        get => AutoSyncModeIndex == 0;
+        set
+        {
+            if (value && AutoSyncModeIndex != 0)
+            {
+                AutoSyncModeIndex = 0;
+            }
+        }
+    }
+
+    public bool AutoSyncDaily
+    {
+        get => AutoSyncModeIndex == 1;
+        set
+        {
+            if (value && AutoSyncModeIndex != 1)
+            {
+                AutoSyncModeIndex = 1;
+            }
+        }
+    }
+
+    partial void OnAutoSyncEnabledChanged(bool value) => RestartAutoSyncTimer();
+
+    partial void OnAutoSyncModeIndexChanged(int value)
+    {
+        OnPropertyChanged(nameof(AutoSyncByInterval));
+        OnPropertyChanged(nameof(AutoSyncDaily));
+        RestartAutoSyncTimer();
+    }
+
+    partial void OnAutoSyncIntervalHoursChanged(decimal value) => RestartAutoSyncTimer();
+
+    partial void OnAutoSyncAtTimeChanged(string value) => RestartAutoSyncTimer();
+
+    /// <summary>
+    /// 按当前设置重建定时器。设置一改就整个重来，不去校正已经排下去的那次。
+    /// </summary>
+    private void RestartAutoSyncTimer()
+    {
+        if (_autoSyncTimer is not null)
+        {
+            _autoSyncTimer.Stop();
+            _autoSyncTimer.Tick -= OnAutoSyncTick;
+            _autoSyncTimer = null;
+        }
+
+        if (!AutoSyncEnabled)
+        {
+            AutoSyncHint = string.Empty;
+            return;
+        }
+
+        var delay = ComputeAutoSyncDelay();
+        if (delay is null)
+        {
+            AutoSyncHint = "时间格式不对，请填写 24 小时制的 HH:mm，例如 03:00。";
+            return;
+        }
+
+        var timer = new DispatcherTimer { Interval = delay.Value };
+        timer.Tick += OnAutoSyncTick;
+        timer.Start();
+        _autoSyncTimer = timer;
+
+        var wait = delay.Value.TotalHours >= 1
+            ? $"{delay.Value.TotalHours:0.#} 小时后"
+            : $"{delay.Value.TotalMinutes:0} 分钟后";
+
+        AutoSyncHint = $"下次自动同步：{DateTime.Now.Add(delay.Value):MM-dd HH:mm}（{wait}）";
+    }
+
+    private TimeSpan? ComputeAutoSyncDelay()
+    {
+        if (AutoSyncModeIndex == 0)
+        {
+            var hours = AutoSyncIntervalHours > 0 ? (double)AutoSyncIntervalHours : 6d;
+            return TimeSpan.FromHours(Math.Min(hours, 168));
+        }
+
+        if (!TimeOnly.TryParse(AutoSyncAtTime?.Trim(), CultureInfo.InvariantCulture, out var at))
+        {
+            return null;
+        }
+
+        var local = DateTime.Now;
+        var next = local.Date + at.ToTimeSpan();
+
+        if (next <= local)
+        {
+            next = next.AddDays(1);
+        }
+
+        return next - local;
+    }
+
+    private async void OnAutoSyncTick(object? sender, EventArgs e)
+    {
+        // 先把下一轮排上，再跑这一轮：定时点不该因为这一轮的成败而漂移
+        RestartAutoSyncTimer();
+
+        if (IsBusy)
+        {
+            AddLog(ExportLogLevel.Warning, "上一次导出还没结束，本轮自动同步跳过。");
+            return;
+        }
+
+        AddLog(ExportLogLevel.Info, "自动同步开始。");
+        await StartAsync();
+    }
+
+    #endregion
+
     #region 内部逻辑
 
     private ExportOptions BuildOptions() => new()
@@ -439,7 +626,8 @@ public partial class MainWindowViewModel : ObservableObject
             _ => ExportFormat.Docx,
         },
         AsposeLicensePath = NullIfEmpty(LicensePath),
-        SkipExistingFiles = SkipExistingFiles,
+        SkipExistingFiles = SyncModeIndex == 1,
+        Incremental = SyncModeIndex == 2,
     };
 
     private static string DescribeTarget(ExportOptions options)
@@ -545,7 +733,13 @@ public partial class MainWindowViewModel : ObservableObject
         ExportPath = settings.ExportPath;
         FormatIndex = settings.FormatIndex is >= 0 and <= 2 ? settings.FormatIndex : 0;
         LicensePath = settings.LicensePath;
-        SkipExistingFiles = settings.SkipExistingFiles;
+        SyncModeIndex = settings.SyncModeIndex is >= 0 and <= 2 ? settings.SyncModeIndex : 2;
+        AutoSyncEnabled = settings.AutoSyncEnabled;
+        AutoSyncModeIndex = settings.AutoSyncModeIndex is >= 0 and <= 1 ? settings.AutoSyncModeIndex : 1;
+        AutoSyncIntervalHours = settings.AutoSyncIntervalHours is > 0 and <= 168
+            ? settings.AutoSyncIntervalHours
+            : 6;
+        AutoSyncAtTime = string.IsNullOrWhiteSpace(settings.AutoSyncAtTime) ? "03:00" : settings.AutoSyncAtTime;
         ThemeMode = settings.ThemeMode is >= 0 and <= 2 ? settings.ThemeMode : 0;
 
         // 主题在加载设置时立刻应用，避免界面先闪一下系统配色
@@ -565,7 +759,11 @@ public partial class MainWindowViewModel : ObservableObject
         ExportPath = ExportPath ?? string.Empty,
         FormatIndex = FormatIndex,
         LicensePath = LicensePath ?? string.Empty,
-        SkipExistingFiles = SkipExistingFiles,
+        SyncModeIndex = SyncModeIndex,
+        AutoSyncEnabled = AutoSyncEnabled,
+        AutoSyncModeIndex = AutoSyncModeIndex,
+        AutoSyncIntervalHours = (int)AutoSyncIntervalHours,
+        AutoSyncAtTime = AutoSyncAtTime ?? string.Empty,
         ThemeMode = ThemeMode,
         OnboardingSeen = _settings.OnboardingSeen,
     };

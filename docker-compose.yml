@@ -1,0 +1,52 @@
+# 飞书导出 · 定时增量同步
+#
+# 用法：
+#   1. 在这个目录建一个 .env 文件，写三行：
+#        FEISHU_APP_ID=cli_xxxxxxxxxxxxx
+#        FEISHU_APP_SECRET=xxxxxxxxxxxxxxxx
+#        SPACE_ID=6872xxxxxxxxxxxxx
+#      （.env 别提交到仓库）
+#   2. docker compose up -d --build
+#   3. 看日志：docker compose logs -f
+#      看下一轮时间：docker compose logs | grep 下一轮
+#
+# 导出结果和增量状态文件（.feishu-export-state.json）都在 ./exported 里。
+# 换机器时整个目录拷走就能继续增量，不会从头重导一遍。
+#
+# 想改成每 6 小时一次：把 AT 注释掉、放开 INTERVAL。两个同时设置程序会报错。
+
+services:
+  feishu-export:
+    build:
+      context: .
+      args:
+        VERSION: "1.1.0"
+    image: feishu-export:1.1.0
+    container_name: feishu-export
+    restart: unless-stopped
+    environment:
+      FEISHU_APP_ID: ${FEISHU_APP_ID:?缺少 FEISHU_APP_ID，请在 .env 里填写}
+      FEISHU_APP_SECRET: ${FEISHU_APP_SECRET:?缺少 FEISHU_APP_SECRET，请在 .env 里填写}
+
+      # 导出知识库用 SPACE_ID；导出个人空间云文档改用 FOLDER_TOKEN 并把 DOC_TYPE 设成 cloudDoc
+      SPACE_ID: ${SPACE_ID:?缺少 SPACE_ID（知识库 Id）}
+      # FOLDER_TOKEN: xxxxxxxx
+      DOC_TYPE: ${DOC_TYPE:-wiki}
+
+      # docx / pdf / md
+      SAVE_TYPE: ${SAVE_TYPE:-docx}
+
+      # 定时：AT 是每天固定时刻，INTERVAL 是固定间隔（45s / 30m / 6h / 1d），二选一
+      AT: "${AT:-03:00}"
+      # INTERVAL: 6h
+
+      # AT 用的时区，改这里就能按你当地的时间跑
+      TZ: ${TZ:-Asia/Shanghai}
+
+      # 导出 md 且买了 Aspose.Words 许可证时，把许可证文件挂进来并指到这里
+      # LICENSE_PATH: /lic/License.lic
+      # INCREMENTAL: "1"
+
+    volumes:
+      - ./exported:/data
+      # - ./Aspose.Words.lic:/lic/License.lic:ro

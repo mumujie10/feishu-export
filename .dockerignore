@@ -1,0 +1,15 @@
+# 构建上下文里必须排掉这些，否则 docker build 会先把几百 MB 甚至上 GB 的东西传进 daemon
+.git/
+.gitignore
+.dotnet/
+.dotnet-home/
+.nuget/
+.tools/
+dist/
+build/
+**/bin/
+**/obj/
+docs/
+*.md
+.DS_Store
+**/.DS_Store

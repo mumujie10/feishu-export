@@ -79,6 +79,14 @@ public sealed class ExportOptions
     /// <summary>目标文件已存在时是否跳过。适合中断后重跑的大型知识库。</summary>
     public bool SkipExistingFiles { get; set; }
 
+    /// <summary>
+    /// 增量模式：只导出新增和改动过的文档，依据是导出目录里
+    /// <see cref="ExportStateStore.FileName"/> 记录的飞书编辑时间。
+    /// 与 <see cref="SkipExistingFiles"/> 的区别在于后者只看文件在不在，
+    /// 内容改过的文档会被误跳过。
+    /// </summary>
+    public bool Incremental { get; set; }
+
     /// <summary>验证配置是否完整，返回人类可读的错误列表（为空表示校验通过）。</summary>
     public IReadOnlyList<string> Validate()
     {

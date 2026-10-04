@@ -33,7 +33,20 @@ public sealed class AppSettings
 
     public string LicensePath { get; set; } = string.Empty;
 
-    public bool SkipExistingFiles { get; set; }
+    /// <summary>同步方式：0=全部重新导出，1=跳过已存在的文件，2=只导新增和改动的。</summary>
+    public int SyncModeIndex { get; set; } = 2;
+
+    /// <summary>是否开启自动同步（需要程序保持开着）。</summary>
+    public bool AutoSyncEnabled { get; set; }
+
+    /// <summary>自动同步方式：0=固定间隔，1=每天定点。</summary>
+    public int AutoSyncModeIndex { get; set; } = 1;
+
+    /// <summary>固定间隔的小时数。</summary>
+    public int AutoSyncIntervalHours { get; set; } = 6;
+
+    /// <summary>每天定点的 24 小时制时刻，形如 03:00。</summary>
+    public string AutoSyncAtTime { get; set; } = "03:00";
 
     /// <summary>0=跟随系统，1=浅色，2=深色。</summary>
     public int ThemeMode { get; set; }

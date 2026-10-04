@@ -29,13 +29,19 @@ public sealed class ExportResult
         int total,
         IReadOnlyList<ExportFailure> failures,
         TimeSpan elapsed,
-        bool canceled)
+        bool canceled,
+        int added = 0,
+        int updated = 0,
+        int unchanged = 0)
     {
         Succeeded = succeeded;
         Total = total;
         Failures = failures;
         Elapsed = elapsed;
         Canceled = canceled;
+        Added = added;
+        Updated = updated;
+        Unchanged = unchanged;
     }
 
     /// <summary>成功导出的文档数。</summary>
@@ -52,6 +58,15 @@ public sealed class ExportResult
 
     /// <summary>是否由用户主动取消。</summary>
     public bool Canceled { get; }
+
+    /// <summary>增量模式下本次新出现的文档数。</summary>
+    public int Added { get; }
+
+    /// <summary>增量模式下本次内容或文件名变了的文档数。</summary>
+    public int Updated { get; }
+
+    /// <summary>增量模式下判定为没变过、直接跳过的文档数。</summary>
+    public int Unchanged { get; }
 
     /// <summary>是否全部成功。</summary>
     public bool AllSucceeded => Failures.Count == 0 && !Canceled;

@@ -16,11 +16,30 @@
       没有许可证文件时程序不会崩溃，会退化为评估模式并在界面上给出明确提示。
     -->
     <PackageReference Include="Aspose.Words" Version="21.6.0" />
+
+    <!--
+      Aspose.Words 21.6 会把托管 SkiaSharp 拖到 2.80.1，与下面的原生库版本对不上时，
+      命令行版导出 markdown 会在 Skia 的静态构造里抛 DllNotFoundException，
+      并且是从终结器线程抛出来的，进程直接被带走。所以托管版本必须和原生库钉在一起。
+      （图形界面因为 Avalonia 依赖会把托管版本抬到 2.88.x，所以之前只有命令行版会崩。
+       2.88.9 起才带上 libwebp 高危漏洞修复，不要再往下降。）
+    -->
+    <PackageReference Include="SkiaSharp" Version="2.88.9" />
   </ItemGroup>
 
-  <ItemGroup Condition="$([MSBuild]::IsOSPlatform('OSX'))">
-    <!-- Aspose.Words 在 macOS 上渲染/抽出图片依赖 SkiaSharp 原生库，Apple Silicon 需要 arm64 版本 -->
-    <PackageReference Include="SkiaSharp.NativeAssets.macOS" Version="2.88.3" />
+  <!--
+    Aspose.Words 在非 Windows 上做 docx → markdown 转换时需要 SkiaSharp 的原生库。
+
+    这里按「目标 RID」判断，不能按「构建主机」判断：在 macOS 上交叉发布 Linux 包时，
+    按主机判断会漏掉 Linux 需要的 libSkiaSharp.so，只有真在 Linux 上构建才碰巧是对的
+    （Docker 镜像里就会踩到）。
+  -->
+  <ItemGroup Condition="$(RuntimeIdentifier.StartsWith('osx')) or ('$(RuntimeIdentifier)' == '' and $([MSBuild]::IsOSPlatform('OSX')))">
+    <PackageReference Include="SkiaSharp.NativeAssets.macOS" Version="2.88.9" />
+  </ItemGroup>
+
+  <ItemGroup Condition="$(RuntimeIdentifier.StartsWith('linux')) or ('$(RuntimeIdentifier)' == '' and $([MSBuild]::IsOSPlatform('Linux')))">
+    <PackageReference Include="SkiaSharp.NativeAssets.Linux.NoDependencies" Version="2.88.9" />
   </ItemGroup>
 
 </Project>

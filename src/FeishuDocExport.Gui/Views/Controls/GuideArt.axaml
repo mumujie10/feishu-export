@@ -266,7 +266,7 @@
             </StackPanel>
           </Border>
 
-          <TextBlock Classes="cap" Text="下拉框是空的 → 说明知识库还没授权给应用" />
+          <TextBlock Classes="cap" Text="列表为空？把知识库链接整条贴进输入框也能导" />
         </StackPanel>
       </DockPanel>
     </Border>
@@ -311,6 +311,55 @@
             </Border>
             <TextBlock Classes="cap" Text="表格自动导成 xlsx" />
           </StackPanel>
+        </StackPanel>
+      </DockPanel>
+    </Border>
+
+    <!-- ============ 6. 增量与自动同步 ============ -->
+    <Border Classes="frame" x:Name="sync">
+      <DockPanel>
+        <Border Classes="bar" DockPanel.Dock="Top">
+          <TextBlock Classes="cap" Text="飞书导出：导出设置 → 同步方式 / 自动同步" />
+        </Border>
+
+        <StackPanel Spacing="9" Margin="12,12,12,10">
+          <TextBlock Classes="t-strong" Text="同步方式" />
+
+          <StackPanel Orientation="Horizontal" Spacing="7">
+            <Border Classes="box" Padding="9,4">
+              <TextBlock Classes="t" Text="全部重导" />
+            </Border>
+            <Border Classes="box" Padding="9,4">
+              <TextBlock Classes="t" Text="跳过已存在" />
+            </Border>
+            <Border Classes="hl" Padding="9,4">
+              <TextBlock Classes="t-hl" Text="只导新增和改动的" />
+            </Border>
+          </StackPanel>
+
+          <Border Classes="box">
+            <Grid ColumnDefinitions="*,Auto">
+              <TextBlock Classes="t" Text=".feishu-export-state.json" />
+              <TextBlock Grid.Column="1" Classes="t-hl" Text="已记录 712 篇" />
+            </Grid>
+          </Border>
+
+          <Border Height="1" Background="{DynamicResource Brush.Border.Subtle}" Margin="0,2" />
+
+          <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8">
+            <StackPanel Spacing="3" MinWidth="0">
+              <TextBlock Classes="t-strong" Text="自动同步" />
+              <TextBlock Classes="cap" Text="每天 03:00" />
+            </StackPanel>
+            <Border Grid.Column="1"
+                    Classes="hl"
+                    Padding="9,4"
+                    VerticalAlignment="Center">
+              <TextBlock Classes="t-hl" Text="已开启" />
+            </Border>
+          </Grid>
+
+          <TextBlock Classes="cap" Text="下次运行：明天 03:00 · 程序需保持开着" />
         </StackPanel>
       </DockPanel>
     </Border>

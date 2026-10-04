@@ -36,9 +36,15 @@
 ### 2. 给应用授权知识库
 
 - 在飞书桌面客户端创建一个群组，把上面创建的应用作为**群机器人**加进去。
-- 打开知识库 → **知识空间设置** → **成员管理** → **添加管理员**，选择刚刚建立的群组。
+- 打开知识库 → 左下角设置 → **成员设置** → 选「可编辑的成员」或「可阅读的成员」→ 在搜索框里输入**刚才那个群的名称**并添加。
 
-> 个人空间云文档不支持列举文件夹，必须先把目标文件夹**分享给自建应用**，再手动填写 `folderToken`。
+> 搜索框里输应用名字是搜不到的——这个弹窗只接受用户、群组、部门、用户组，应用是靠它所在的**群**拿到权限的。
+>
+> 成员里也加不进群的话改用节点分享：左侧目录里右键顶层那一篇 → 分享 → 添加该群为可阅读。
+>
+> 授权完成后界面里的「获取列表」**仍可能是空的**：飞书的知识空间列表接口只认空间级授权。这不是失败，把知识库链接贴进输入框照样能导。
+
+> 个人空间云文档不支持列举文件夹，必须先把目标文件夹**分享给自建应用**，再把分享链接贴进工具（会自动提取 `folderToken`）。
 
 ### 3. 获取知识库 Id / folderToken
 
@@ -53,7 +59,7 @@
 启动 `feishu-doc-export-gui` 后，左侧按 1→2→3 的顺序填写：
 
 1. **应用凭证**：AppId、AppSecret；开放平台地址默认飞书（国内），国际版 Lark 选第二项，也可以选「自定义」手填。
-2. **导出什么**：选「知识库」后点 **获取列表**，从下拉框挑一个知识库（也可以直接手填 `spaceId`）；选「个人空间云文档」则填 `folderToken`。
+2. **导出什么**：选「知识库」后点 **获取列表** 从下拉框挑一个；**列表为空也没关系**，把知识库主页地址栏那条链接（`…/wiki/space/xxx`）整条贴进输入框即可，工具会自动提取 `spaceId`。选「个人空间云文档」时同理，直接贴文件夹分享链接。
 3. **导出设置**：选择导出目录、保存格式；如果导出 markdown，建议指定 Aspose.Words 许可证文件。
 
 **教程就在软件里**：首次启动会自动弹出 5 节「使用引导」（建应用 → 开权限 → 授权知识库 → 选目标 → 选格式开跑），看完关掉即可，之后点顶栏「使用引导」随时重看。每个卡片右上角还有个 `?`，只讲这一项该怎么填。引导页里可以一键复制需要开通的 8 项权限名单、直接打开飞书开发者后台。
@@ -89,13 +95,18 @@
 
 可选参数：
   --type            导出对象：wiki（知识库，默认）或 cloudDoc（个人空间云文档）
-  --spaceId         知识库 Id；不传则列出所有知识库由你选择
+  --spaceId         知识库 Id，也可以直接粘贴知识库链接（…/wiki/space/xxx）
+                    不传则列出所有知识库由你选择
   --folderToken     个人空间文件夹 Token，type=cloudDoc 时必填
+                    同样支持直接粘贴文件夹分享链接
   --saveType        文档保存格式：docx（默认）、pdf、md
   --apiEndpoint     开放平台地址，默认 https://open.feishu.cn
                     国际版 Lark 请传 https://open.larksuite.com
   --licensePath     Aspose.Words 许可证文件路径（仅导出 md 时需要）
   --skipExisting    目标文件已存在时跳过，便于中断后重跑
+  --incremental     增量导出：只导新增和改动过的文档（见下方「定时增量导出」）
+  --interval        常驻定时：每隔多久跑一次，如 45s / 30m / 6h / 1d
+  --at              常驻定时：每天固定时刻跑一次，如 03:00（本地时区）
   --quit            执行完直接退出，不等待按键
 ```
 
@@ -128,6 +139,68 @@ export FEISHU_APP_SECRET=xxx
 ./feishu-doc-export --appId=xxx --appSecret=xxx --spaceId=xxx \
     --apiEndpoint=https://open.larksuite.com --exportPath=/home/user/docs
 ```
+
+### 定时增量导出
+
+飞书接口返回的节点数据本来就带编辑时间（知识库的 `obj_edit_time`、云文档的 `modified_time`），
+所以工具可以在导出目录里记一份 `.feishu-export-state.json`，下次只导**新增**和**编辑时间变过**的文档：
+
+```bash
+# 手动跑一次增量
+./feishu-doc-export --spaceId=xxx --exportPath=/data/docs --incremental
+
+# 常驻：每天 03:00 增量一次（Ctrl+C 停止）
+FEISHU_APP_ID=xxx FEISHU_APP_SECRET=xxx \
+  ./feishu-doc-export --spaceId=xxx --exportPath=/data/docs --at=03:00
+
+# 常驻：每 6 小时一次
+./feishu-doc-export --spaceId=xxx --exportPath=/data/docs --interval=6h
+```
+
+几点约定：
+
+- `--interval` 与 `--at` 二选一；给了其中之一就进入常驻模式，并自动启用增量。
+- 常驻模式必须显式给出 `--spaceId`（或 `--folderToken`）——后台没有人在终端里替它挑知识库。
+- 状态文件放在**导出目录里**而不是用户配置目录，所以换机器、换挂载路径（Docker 尤其如此）都能继续增量，不会从头重导。
+- 判定标准是「编辑时间没变 + 落盘路径没变 + 文件确实还在」，任一条不满足就重导；拿不到编辑时间的文档一律重导，宁可多导不可漏导。
+- 单轮失败不会让常驻进程退出（否则容器会被重启策略反复拉起、每轮都从头再来），错误进日志，下一轮照跑。
+- 每成功 20 篇落一次状态文件；`Ctrl+C` 和 `SIGTERM` 都会先写完状态再退出。
+- 文档在飞书里被删掉时，本地文件和状态都保留不动——这个工具不删你的东西。
+
+### Docker 部署
+
+仓库根目录带了 `Dockerfile`、`docker/entrypoint.sh` 和 `docker-compose.yml`。镜像里只编译命令行版（容器没有显示设备，图形界面不进镜像）。
+
+```bash
+git clone https://github.com/mumujie10/feishu-export.git
+cd feishu-export
+
+cat > .env <<'EOF'
+FEISHU_APP_ID=cli_xxxxxxxxxxxxx
+FEISHU_APP_SECRET=xxxxxxxxxxxxxxxx
+SPACE_ID=6872xxxxxxxxxxxxx
+EOF
+
+docker compose up -d --build      # 默认每天 03:00 增量导出到 ./exported
+docker compose logs -f            # 看进度和下一轮时间
+```
+
+常用环境变量（`docker-compose.yml` 里都有注释）：
+
+| 变量 | 说明 |
+| --- | --- |
+| `FEISHU_APP_ID` / `FEISHU_APP_SECRET` | 必填。只走环境变量，不出现在命令行和镜像层里 |
+| `SPACE_ID` / `FOLDER_TOKEN` | 二选一，配合 `DOC_TYPE=wiki` 或 `DOC_TYPE=cloudDoc` |
+| `SAVE_TYPE` | `docx`（默认）/ `pdf` / `md` |
+| `AT` / `INTERVAL` | 定时方式，二选一；都不设就是跑一次就退出 |
+| `TZ` | 决定 `AT` 按哪个时区解释，默认 `Asia/Shanghai` |
+| `INCREMENTAL` | 默认 `1`；设成 `0` 就是每轮全量重导 |
+| `LICENSE_PATH` | 导出 md 时的 Aspose.Words 许可证路径，需要额外挂一个 volume |
+
+导出结果和状态文件都落在挂载出来的 `./exported` 里，容器删掉重建也不会触发全量重导。
+
+> 镜像基于 `mcr.microsoft.com/dotnet/runtime:8.0` 并额外装了 `fontconfig`，因为 Aspose.Words 做 docx → markdown 转换时要读字体。
+> **Linux 下导出 md 这条路径需要你在目标机器上实测一次**：如果只有 md 失败、docx 正常，基本就是字体或许可证的问题。
 
 ### 退出码
 
@@ -180,11 +253,15 @@ chmod +x ./feishu-doc-export
 ```
 feishu-doc-export.sln
 ├── src/
-│   ├── FeishuDocExport.Core/     核心库：飞书接口客户端、导出编排、路径生成、markdown 转换
+│   ├── FeishuDocExport.Core/     核心库：飞书接口客户端、导出编排、路径生成、增量状态、markdown 转换
 │   ├── FeishuDocExport.Cli/      命令行入口（产物名 feishu-doc-export）
 │   └── FeishuDocExport.Gui/      Avalonia 图形界面（产物名 feishu-doc-export-gui）
-└── tests/
-    └── FeishuDocExport.Tests/    单元测试
+├── tests/
+│   └── FeishuDocExport.Tests/    单元测试
+├── docker/entrypoint.sh          容器入口：把环境变量拼成命令行参数
+├── Dockerfile                    命令行版的容器镜像
+├── docker-compose.yml            定时增量同步的部署示例
+└── scripts/build-dmg.sh          macOS .dmg 打包
 ```
 
 核心库不依赖任何界面框架，命令行和图形界面共用同一套导出逻辑。
@@ -219,7 +296,7 @@ dotnet publish src/FeishuDocExport.Cli/FeishuDocExport.Cli.csproj \
 ```bash
 ./scripts/build-dmg.sh                  # 当前机器架构（Apple Silicon → osx-arm64）
 ./scripts/build-dmg.sh osx-x64          # Intel 版
-./scripts/build-dmg.sh osx-arm64 1.0.1  # 指定版本号
+./scripts/build-dmg.sh osx-arm64 1.1.1  # 指定版本号
 ```
 
 产出 `dist/feishu-export-<版本>-<架构>.dmg`，双击挂载后把「飞书导出.app」拖进 Applications 即可。DMG 里还包含：
@@ -253,6 +330,21 @@ dotnet publish src/FeishuDocExport.Cli/FeishuDocExport.Cli.csproj \
 ---
 
 ## 八、更新日志
+
+### v1.1.0（定时与容器化）
+
+> **请从本版本开始使用。** v1.0.0 存在一个导致知识库导出失败的缺陷（见下方第二条），那个版本发布的安装包不可用。
+
+- **新增：直接粘贴链接**。知识库链接（`…/wiki/space/7100…`）和文件夹分享链接（`…/folder/xxxx`）整条贴进来，工具自动提取 spaceId / folderToken；贴成单篇文档链接时会明确告诉你贴错了该贴什么。
+- **新增增量导出 `--incremental`**：按飞书返回的编辑时间判断，只导新增和改动过的文档；状态记在导出目录的 `.feishu-export-state.json` 里，换机器、换挂载路径都能续跑，不会从头再来。
+- **新增常驻定时 `--interval=6h` / `--at=03:00`**：单轮失败不退出进程；`Ctrl+C` 和 `SIGTERM` 都会先写完状态文件再退，每 20 篇做一次检查点。
+- **新增 Docker 部署**：`Dockerfile` + `docker/entrypoint.sh` + `docker-compose.yml`，凭证与目标全部走环境变量，导出目录挂 volume，适合放在 NAS 或常开的机器上。
+- **修复（严重）**：列知识库和知识空间节点时抛 `The JSON property name for 'WikiSpacePagedList.Items' collides with another property`，导致**知识库导出完全不可用**——派生属性 `Items` 与映射成 `items` 的 `ItemList` 在大小写不敏感匹配下判为同名冲突，已加 `[JsonIgnore]` 解决。
+- **修复（严重）**：命令行版导出 markdown 时进程直接崩溃。Aspose.Words 21.6 会把托管 SkiaSharp 拖到 2.80.1，与原生库版本错配，异常从终结器线程抛出、绕过所有异常处理。现已把托管与原生统一钉到 **2.88.9**（顺带修掉 2.88.3 的 libwebp 高危漏洞告警）。
+- **修复**：在 macOS 上交叉发布 Linux 包时会漏掉 `libSkiaSharp.so`——原生库的引用条件是按「构建主机」而不是按「目标 RID」判断的，导致 Linux 下导出 markdown 失败。
+- **变更**：界面里的「跳过已存在的文件」勾选框改为**同步方式**三选（全部重导 / 跳过已存在 / 只导新增和改动的，默认后者）；新增「自动同步」卡片，可按固定间隔或每天定点自动跑增量。
+- **文档**：使用引导第 3、4 节按实测结果重写——成员弹窗里要搜的是**群名称而不是应用名称**；飞书的知识空间列表接口只认空间级授权，**列表为空不代表没授权**，贴链接即可正常导出。
+- **实测**：真实知识库 42 篇，docx 全量 105 秒、markdown 全量 143 秒（298 张图片落到 42 个 `.assets` 目录）；增量重跑 7 秒全部跳过；伪造改动可被准确识别并只重导那一篇。
 
 ### v1.0.0（图形界面版本）
 
