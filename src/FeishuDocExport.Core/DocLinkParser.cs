@@ -81,7 +81,11 @@ public static class DocLinkParser
             return value;
         }
 
-        error = "没能从这条链接里找到文件夹 Token，请确认贴的是文件夹的分享链接（地址里带 /folder/）。";
+        // 知识库的链接（含主页和里面的某一页）经常被贴到这里，说清楚该用哪个方式
+        error = value.Contains("/wiki/", StringComparison.OrdinalIgnoreCase)
+            ? "这是知识库（wiki）的链接，不是云文档文件夹。要导知识库请改用上面的「知识库（wiki）」方式；"
+              + "知识库里的子目录不用单独填，整个库会按原来的层级一起导出来。"
+            : "没能从这条链接里找到文件夹 Token，请确认贴的是云文档文件夹的分享链接（地址里带 /folder/）。";
 
         return null;
     }

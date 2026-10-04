@@ -70,6 +70,16 @@ public sealed class ExportService
 
         var nodes = await FetchNodesCoreAsync(options, progress, ct).ConfigureAwait(false);
 
+        // 飞书对「类型不对的 Token」不会报错，而是返回空列表；不拦下来就会出现
+        // 「成功 0/0、退出码 0」的静默假成功，用户根本不知道什么都没导。
+        if (nodes.Count == 0)
+        {
+            throw new ExportConfigurationException(options.SourceType == DocSourceType.CloudDoc
+                ? "没有读取到任何文档。folderToken 必须是「云文档 / 我的空间」里某个文件夹的 Token；"
+                  + "如果你要导的是知识库（地址里带 /wiki/），请改用「知识库（wiki）」方式并粘贴知识库主页链接。"
+                : "这个知识库没有读取到任何节点。请确认 spaceId 是否正确，以及知识库是否已经把权限给到这个应用。");
+        }
+
         progress?.Report(new ExportProgress($"共读取到 {nodes.Count} 个节点，正在生成目录结构…"));
 
         var pathBuilder = ExportPathBuilder.Build(

@@ -103,6 +103,30 @@ public class DocLinkParserTests
         Assert.Equal("7100000000000000001", parsed.Options.WikiSpaceId);
     }
 
+    [Theory]
+    [InlineData("https://example.feishu.cn/wiki/space/7100000000000000001?ccm_open_type=lark_wiki_spaceLink&open_tab_from=wiki_home")]
+    [InlineData("https://example.feishu.cn/wiki/space/7100000000000000001")]
+    [InlineData("https://example.feishu.cn/wiki/space/7100000000000000001/")]
+    [InlineData("  https://example.feishu.cn/wiki/space/7100000000000000001  ")]
+    [InlineData("财税系统项目 https://example.feishu.cn/wiki/space/7100000000000000001?from=copy")]
+    [InlineData("https://example.larksuite.com/wiki/space/7100000000000000001")]
+    public void 各种形态的知识库链接都能取出Id(string link)
+    {
+        Assert.Equal("7100000000000000001", DocLinkParser.ExtractSpaceId(link, out var error));
+        Assert.Null(error);
+    }
+
+    [Fact]
+    public void 知识库链接贴进文件夹输入框时说清楚该用哪个方式()
+    {
+        var token = DocLinkParser.ExtractFolderToken(
+            "https://example.feishu.cn/wiki/RsMlwH0niiI8F5kKJvQcV8hmnOb?fromScene=spaceOverview", out var error);
+
+        Assert.Null(token);
+        Assert.NotNull(error);
+        Assert.Contains("知识库", error);
+    }
+
     [Fact]
     public void 命令行贴错链接时报参数错误()
     {

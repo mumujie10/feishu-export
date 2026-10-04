@@ -166,6 +166,11 @@ internal static class Program
             Console.Error.WriteLine($"【ERROR】{ex.Message}");
             return ExitInvalidArguments;
         }
+        catch (ExportConfigurationException ex)
+        {
+            Console.Error.WriteLine($"【ERROR】{ex.Message}");
+            return ExitInvalidArguments;
+        }
         catch (Exception ex)
         {
             Console.Error.WriteLine($"【ERROR】程序执行失败：{ex.Message}");
