@@ -107,6 +107,8 @@ public class DocLinkParserTests
     [InlineData("https://example.feishu.cn/wiki/space/7100000000000000001?ccm_open_type=lark_wiki_spaceLink&open_tab_from=wiki_home")]
     [InlineData("https://example.feishu.cn/wiki/space/7100000000000000001")]
     [InlineData("https://example.feishu.cn/wiki/space/7100000000000000001/")]
+    [InlineData("https://example.feishu.cn/wiki/settings/7100000000000000001")]
+    [InlineData("https://example.feishu.cn/wiki/settings/7100000000000000001?fromScene=spaceOverview")]
     [InlineData("  https://example.feishu.cn/wiki/space/7100000000000000001  ")]
     [InlineData("财税系统项目 https://example.feishu.cn/wiki/space/7100000000000000001?from=copy")]
     [InlineData("https://example.larksuite.com/wiki/space/7100000000000000001")]

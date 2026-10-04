@@ -430,6 +430,11 @@ public partial class MainWindowViewModel : ObservableObject
         {
             ShowError(ex.Message);
         }
+        catch (ExportConfigurationException ex)
+        {
+            // 配置类错误是用户能自己修的，只给一句人话，不要把堆栈丢进日志里
+            ShowError(ex.Message);
+        }
         catch (Exception ex)
         {
             ShowError($"导出失败：{ex.Message}");
@@ -440,6 +445,12 @@ public partial class MainWindowViewModel : ObservableObject
             _cts?.Dispose();
             _cts = null;
             IsBusy = false;
+
+            // 中途失败时 OnFinished 不会跑，右侧状态区会一直停在「导出进行中…」的假象上
+            if (string.IsNullOrEmpty(SummaryText))
+            {
+                FailureSummary = "本次导出没有完成，请看上方的错误提示。";
+            }
         }
     }
 

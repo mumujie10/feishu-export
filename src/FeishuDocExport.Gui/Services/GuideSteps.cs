@@ -130,7 +130,7 @@ public static class GuideSteps
                 new(GuideItemKind.Text, "先在「应用凭证」里填好 AppId / AppSecret。"),
                 new(
                     GuideItemKind.Text,
-                    "打开要导出的知识库，复制浏览器地址栏那条链接（形如 …/wiki/space/7123456789012345678），整条粘到「导出什么」下面的输入框，点开始导出即可。"),
+                    "打开要导出的知识库，把浏览器地址栏那条链接整条粘到「导出什么」下面的输入框——主页地址（…/wiki/space/xxx）和设置页地址（…/wiki/settings/xxx）都可以，点开始导出即可。"),
                 new(
                     GuideItemKind.Text,
                     "「获取列表」能列出知识库的话，直接下拉选更省事，名称和 Id 会自动带出。"),

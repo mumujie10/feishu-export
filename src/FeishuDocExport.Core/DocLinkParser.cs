@@ -8,9 +8,13 @@ namespace FeishuDocExport;
 /// </summary>
 public static class DocLinkParser
 {
-    /// <summary>知识库链接：…/wiki/space/&lt;数字 Id&gt;。</summary>
+    /// <summary>
+    /// 知识库链接里的空间 Id。飞书有两个入口会给出带 Id 的地址：
+    /// 知识库主页 <c>…/wiki/space/&lt;id&gt;</c>，以及知识库设置页 <c>…/wiki/settings/&lt;id&gt;</c>
+    /// （readme 教的正是后者），两种都要认。
+    /// </summary>
     private static readonly Regex SpaceLinkPattern = new(
-        @"wiki/space/(?<id>\d{6,})",
+        @"wiki/(?:space|settings)/(?<id>\d{6,})",
         RegexOptions.CultureInvariant | RegexOptions.IgnoreCase);
 
     /// <summary>文件夹分享链接：…/drive/folder/&lt;token&gt; 或 …/folder/&lt;token&gt;。</summary>
@@ -53,8 +57,8 @@ public static class DocLinkParser
         }
 
         error = DocLinkPattern.IsMatch(value)
-            ? "这看起来是某一篇文档的链接，不是知识库链接。请打开知识库主页，地址栏形如 …/wiki/space/7123456789012345678，把那一条贴进来。"
-            : "没能从这条链接里找到知识库 Id，请确认贴的是知识库主页链接（地址里带 /wiki/space/）。";
+            ? "这看起来是知识库里某一篇文档的链接，不是知识库本身的地址。请打开知识库主页（或知识库设置页），地址栏形如 …/wiki/space/7123456789012345678，把那一条贴进来。"
+            : "没能从这条链接里找到知识库 Id，请贴知识库主页或设置页的地址（形如 …/wiki/space/xxx 或 …/wiki/settings/xxx）。";
 
         return null;
     }
